@@ -45,7 +45,7 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 - After push, Pages takes ~1–2 min: `gh api repos/medawa01/gacha-tracker/pages/builds --jq ".[0]"`.
 - Live site is JS-rendered; `webfetch` shows only the shell — verify deploys by fetching raw HTML and grepping markers.
 
-## Environment (MEDAWA-PC, Win11, PowerShell 5.1)
+## Environment (PC, Win11, PowerShell 5.1)
 
 - Git + gh CLI via winget, but child shells may lack them on PATH (installed after the agent service started) — use full paths: `C:\Program Files\Git\bin\git.exe`, `C:\Program Files\GitHub CLI\gh.exe`.
 - No `&&` or `~` in PowerShell; use `;` and full paths.
