@@ -3,14 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gacha Tracker Draft</title>
+<title>Gacha Tracker</title>
 <style>
   :root { color-scheme: dark; --bg:#121418; --card:#1c1f26; --line:#2c313c; --txt:#e8eaf0; --dim:#9aa3b2; --good:#5fd68a; --warn:#ff9d5c; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--txt); font:14px/1.35 system-ui, sans-serif; padding:10px; max-width:1400px; margin-inline:auto; }
-  h1 { font-size:18px; margin:0 0 8px; }
-  .games { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); align-items:start; }
-  .game h2 { font-size:16px; margin:0 0 2px; }
+  h1 { font-size:20px; margin:4px 0 12px; text-align:center; }
+  .games { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); align-items:start; }
+  .game { border:1px solid var(--line); border-radius:14px; padding:10px; background:#16181d; }
+  .ghead { position:relative; border:1px solid var(--line); border-radius:10px; background-size:cover; background-position:center; text-align:center; padding:24px 10px; margin-bottom:10px; overflow:hidden; }
+  .ghead::before { content:""; position:absolute; inset:0; background:linear-gradient(rgba(8,10,14,.62), rgba(8,10,14,.62)); }
+  .ghead h2 { position:relative; margin:0; font-size:19px; letter-spacing:.5px; text-shadow:0 2px 8px rgba(0,0,0,.85); }
+  .ghead .cfg { position:relative; margin:6px 0 0; }
   .cfg { color:var(--dim); font-size:12px; margin-bottom:8px; }
   .cfg code { color:var(--txt); background:#262b36; padding:1px 6px; border-radius:6px; margin-right:4px; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:2px 12px 6px; margin-bottom:10px; }
@@ -32,7 +36,7 @@
 <body>
 <h1>Gacha Tracker</h1>
 <div class="games" id="games"></div>
-<div class="foot">draft — values autosave locally · timer refreshes every 30s</div>
+<div class="foot">values autosave locally · timer refreshes every 30s</div>
 <script>
 // gemPerPull: gems per pull | glitterPerPull: 2nd currency per pull (1 = direct tickets)
 // targetMult: Target pulls = target count * this | deficitPerPull: gems per deficit pull (kept as in sheet)
@@ -77,9 +81,12 @@ function render(g){
       <div class="row"><div class="label">X</div><div class="val"><input type="number" id="${p}-thresh" min="0"></div></div>
       <div class="row"><div class="label">X in</div><div class="val"><div class="out" id="${p}-xIn">—</div></div></div>
     </details>` : "";
+  const slug = p.toLowerCase().replace(/\s+/g,"-");
   return `<div class="game" id="game-${p}">
-    <h2>${p}</h2>
-    <div class="cfg"><code>${g.targetMult} pity</code><code>${g.gemPerPull}/pull</code><code>${g.glitterPerPull} tokens</code>${g.resinCap?`<code>${g.resinCap} cap</code><code>${g.regenMin}min</code>`:""}</div>
+    <div class="ghead" style="background-image:url('assets/${slug}.jpg')">
+      <h2>${p}</h2>
+      <div class="cfg"><code>${g.targetMult} pity</code><code>${g.gemPerPull}/pull</code><code>${g.glitterPerPull} tokens</code>${g.resinCap?`<code>${g.resinCap} cap</code><code>${g.regenMin}min</code>`:""}</div>
+    </div>
     <div class="card">
       <div class="row"><div class="label">Currency</div><div class="val"><input type="number" id="${p}-gems" min="0"><div class="out dim" id="${p}-gemPulls">—</div></div></div>
       <div class="row"><div class="label">Rolls</div><div class="val"><input type="number" id="${p}-rolls" min="0"></div></div>
