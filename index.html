@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0f1115">
+<meta name="theme-color" content="#0a0c10">
 <title>Gacha Tracker</title>
 <style>
-  :root { color-scheme: dark; --bg:#0f1115; --card:#1a1d23; --line:#2b303a; --txt:#e9ebf1; --dim:#9aa3b2; --acc:#7aa2ff; --good:#5fd68a; --warn:#ff9d5c; }
+  :root { color-scheme: dark; --bg:#0a0c10; --card:#1a1d23; --line:#2b303a; --txt:#e9ebf1; --dim:#9aa3b2; --acc:#7aa2ff; --good:#5fd68a; --warn:#ff9d5c; }
   * { box-sizing: border-box; }
   html { -webkit-tap-highlight-color: transparent; }
   body { margin:0; background:var(--bg); color:var(--txt); font:13px/1.4 system-ui, -apple-system, sans-serif; padding:8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); max-width:1400px; margin-inline:auto; touch-action:manipulation; }
   h1 { font-size:20px; margin:2px 0 10px; text-align:center; text-wrap:balance; letter-spacing:.3px; }
   .games { display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); align-items:start; }
-  .game { border:1px solid var(--line); border-radius:12px; padding:0; overflow:hidden; background:#14161b; }
+  .game { border:1px solid var(--line); border-radius:12px; padding:0; overflow:hidden; background:#161a21; box-shadow:0 4px 18px rgba(0,0,0,.5); }
   .ghead { position:relative; border:none; border-bottom:1px solid var(--line); border-radius:0; background-size:cover; background-position:center 35%; text-align:center; padding:20px 10px; margin:0 0 8px; overflow:hidden; }
   .ghead::before { content:""; position:absolute; inset:0; background:linear-gradient(rgba(8,10,14,.60), rgba(8,10,14,.72)); }
   .ghead h2 { position:relative; margin:0; font-size:19px; letter-spacing:.5px; text-wrap:balance; text-shadow:0 2px 8px rgba(0,0,0,.85); }
