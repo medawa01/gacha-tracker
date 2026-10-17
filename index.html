@@ -3,56 +3,116 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0a0c10">
+<meta name="theme-color" content="#05060B">
 <title>Gacha Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
 <style>
-  :root { color-scheme: dark; --bg:#0a0c10; --card:#1a1d23; --line:#2b303a; --txt:#e9ebf1; --dim:#9aa3b2; --acc:#7aa2ff; --good:#5fd68a; --warn:#ff9d5c; }
-  * { box-sizing: border-box; }
-  html { -webkit-tap-highlight-color: transparent; }
-  body { margin:0; background:var(--bg); color:var(--txt); font:13px/1.4 system-ui, -apple-system, sans-serif; padding:8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); max-width:1400px; margin-inline:auto; touch-action:manipulation; }
-  h1 { font-size:20px; margin:2px 0 10px; text-align:center; text-wrap:balance; letter-spacing:.3px; }
-  .games { display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); align-items:start; }
-  @media (min-width:1280px){ .games { grid-template-columns:repeat(5,1fr); } }
-  .game { border:1px solid var(--line); border-radius:12px; padding:0; overflow:hidden; background:#161a21; box-shadow:0 4px 18px rgba(0,0,0,.5); }
-  .ghead { position:relative; border:none; border-bottom:1px solid var(--line); border-radius:0; background-size:cover; background-position:center 35%; text-align:center; padding:20px 10px; margin:0 0 8px; overflow:hidden; }
-  .ghead::before { content:""; position:absolute; inset:0; background:linear-gradient(rgba(8,10,14,.60), rgba(8,10,14,.72)); }
-  .ghead h2 { position:relative; margin:0; font-size:19px; letter-spacing:.5px; text-wrap:balance; text-shadow:0 2px 8px rgba(0,0,0,.85); }
-  .info-wrap { position:absolute; top:8px; right:8px; }
-  .info { width:22px; height:22px; border-radius:50%; border:1px solid rgba(255,255,255,.55); background:rgba(8,10,14,.55); color:#fff; font-size:12px; font-weight:700; cursor:pointer; padding:0; line-height:1; font-family:Georgia, serif; }
-  .info:hover { background:rgba(122,162,255,.4); }
-  .info:focus-visible { outline:2px solid var(--acc); outline-offset:2px; }
-  .tip { display:none; position:absolute; top:28px; right:0; width:max-content; max-width:230px; background:#20242d; border:1px solid #3d4452; border-radius:8px; padding:8px 10px; font-size:12px; line-height:1.5; text-align:left; z-index:5; box-shadow:0 8px 24px rgba(0,0,0,.5); }
-  .info-wrap:hover .tip, .info-wrap:focus-within .tip { display:block; }
-  .card { background:transparent; border:none; border-radius:0; padding:0 12px 4px; margin-bottom:8px; }
-  .card:last-child { margin-bottom:0; }
-  .game>.card { margin:0 8px 8px; }
-  .game>.card:last-child { margin-bottom:0; }
-  .row { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:4px 0; border-bottom:1px solid var(--line); }
-  .row:last-child { border-bottom:none; }
-  .label { font-weight:600; }
-  .val { text-align:right; min-width:0; }
-  input[type=number], input[type=datetime-local] { background:#10131a; color:var(--txt); border:1px solid var(--line); border-radius:6px; padding:3px 8px; width:124px; font-size:13px; }
-  input[type=datetime-local] { width:150px; font-size:11px; }
-  input:hover { border-color:#3d4452; }
-  input:focus-visible { outline:2px solid var(--acc); outline-offset:1px; }
-  .out { font-size:14px; font-variant-numeric:tabular-nums; }
-  .out.big { font-size:17px; font-weight:700; }
-  .good { color:var(--good); } .warn { color:var(--warn); } .dim { color:var(--dim); }
-  details.card { padding:0 12px 4px; }
-  details.card summary { cursor:pointer; padding:6px 0; font-weight:700; list-style:none; display:flex; justify-content:space-between; align-items:center; border-radius:6px; }
-  details.card summary::-webkit-details-marker { display:none; }
-  details.card summary:hover { color:#fff; }
-  details.card summary:focus-visible { outline:2px solid var(--acc); outline-offset:2px; }
-  .chev { display:inline-block; transition:transform .18s ease; color:var(--dim); }
-  details[open] .chev { transform:rotate(90deg); }
-  .foot { color:var(--dim); font-size:11px; text-align:center; margin-top:8px; }
-  @media (prefers-reduced-motion: reduce) { .chev { transition:none; } }
+  :root{
+    color-scheme:dark;
+    --page:#05060B; --bg:#0D0F1B; --surface:#161828; --border:#262A40; --border-control:#2A2F48;
+    --divider:#23273D; --txt:#ECEEF8; --soft:#C9CDE3; --muted:#9AA0BC; --acc:#5CE1E6; --warn:#FF9A5C;
+    --hover:#1B1F33; --focus:#161A2C;
+    --display:'Space Grotesk',system-ui,-apple-system,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-tap-highlight-color:transparent;}
+  body{margin:0;background:var(--page);color:var(--txt);font:400 14px/1.4 var(--display);padding:10px max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));max-width:1600px;margin-inline:auto;touch-action:manipulation;}
+  h1{font:700 20px/1.2 var(--display);margin:2px 0 12px;text-align:center;letter-spacing:.02em;text-wrap:balance;}
+  .foot{color:var(--muted);font:400 11px/1.4 var(--mono);text-align:center;margin:10px 0 0;}
+  .games{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));align-items:start;}
+  @media (min-width:1280px){.games{grid-template-columns:repeat(5,1fr);}}
+
+  .game{container-type:inline-size;background:var(--bg);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.55);}
+
+  /* header banner */
+  .ghead{position:relative;height:64px;display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center 35%;}
+  .ghead::before{content:"";position:absolute;inset:0;background:rgba(13,15,27,.5);}
+  .ghead h2{position:relative;margin:0;padding:0 46px;font:700 22px/1.1 var(--display);letter-spacing:.04em;color:#fff;text-align:center;text-wrap:balance;text-shadow:0 2px 10px rgba(0,0,0,.8);}
+  .info-wrap{position:absolute;top:10px;right:10px;}
+  .info{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(13,15,27,.55);color:#fff;font:700 18px/1 var(--display);cursor:pointer;padding:0;}
+  .info:hover{background:rgba(92,225,230,.22);}
+  .info:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
+  .tip{display:none;position:absolute;top:52px;right:0;z-index:6;width:max-content;max-width:230px;background:var(--surface);border:1px solid var(--border-control);border-radius:12px;padding:8px 10px;font:400 12px/1.5 var(--mono);color:var(--soft);text-align:left;box-shadow:0 14px 34px rgba(0,0,0,.65);}
+  .info-wrap:hover .tip,.info-wrap:focus-within .tip{display:block;}
+
+  /* body */
+  .body{display:flex;flex-direction:column;gap:10px;padding:12px 16px 16px;}
+
+  /* result block */
+  .result{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;}
+  .result-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:6px 10px;}
+  .deficit{display:flex;align-items:baseline;gap:8px;min-width:0;}
+  .defnum{font:700 44px/1 var(--display);letter-spacing:-.01em;color:var(--warn);}
+  .defnum.done{color:var(--acc);}
+  .deficit>span{font:500 15px/1.2 var(--display);color:var(--soft);}
+  .need{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+  .cat{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+  .need b{font:600 16px/1 var(--mono);color:var(--txt);}
+  .bar{height:8px;border-radius:4px;background:var(--bg);overflow:hidden;}
+  .fill{display:block;height:100%;width:0;border-radius:4px;background:var(--acc);transition:width .18s ease-out;}
+  .caption{display:flex;justify-content:space-between;gap:8px;font:500 11px/1.35 var(--mono);}
+  .caption .a{color:var(--acc);}
+  .caption .b{color:var(--muted);text-align:right;}
+
+  /* input rows */
+  .fields{display:flex;flex-direction:column;}
+  .field{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;border-top:1px solid var(--divider);}
+  .field:first-child{border-top:none;}
+  .fl{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .fl-name{font:600 15px/1.2 var(--display);color:var(--txt);}
+  .fl-sub{font:500 12px/1.2 var(--mono);color:var(--acc);white-space:nowrap;}
+  .stepper{display:flex;flex:0 0 auto;align-items:center;background:var(--bg);border:1px solid var(--border-control);border-radius:12px;overflow:hidden;}
+  .step{width:44px;height:44px;display:grid;place-items:center;background:transparent;border:0;color:var(--muted);font:500 20px/1 var(--display);cursor:pointer;padding:0;}
+  .step:hover:not(:disabled){background:var(--hover);color:#fff;}
+  .step:focus-visible{outline:2px solid var(--acc);outline-offset:-2px;}
+  .step:disabled{opacity:.4;cursor:default;}
+  .sinput{width:84px;height:44px;min-width:0;padding:0 2px;background:transparent;border:0;border-left:1px solid var(--border-control);border-right:1px solid var(--border-control);color:var(--txt);font:500 16px/1 var(--mono);text-align:center;}
+  .sinput:focus{background:var(--focus);outline:0;}
+  .sinput:focus-visible{outline:2px solid var(--acc);outline-offset:-2px;}
+
+  /* resin */
+  .resin{margin:0;}
+  .resin-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;height:44px;padding:0 14px;background:transparent;border:1px solid var(--border-control);border-radius:12px;color:var(--soft);font:600 14px/1 var(--display);cursor:pointer;list-style:none;}
+  .resin-btn::-webkit-details-marker{display:none;}
+  .resin-btn::marker{content:"";}
+  .resin-btn:hover{background:var(--hover);}
+  .resin-btn:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
+  .resin-right{display:flex;align-items:center;gap:6px;font:400 12px/1 var(--mono);color:var(--muted);}
+  .chev{transition:transform .18s ease-out;}
+  details[open] .chev{transform:rotate(90deg);}
+  .resin-body{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px 12px 6px;}
+  .rrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid var(--divider);}
+  .rrow:first-child{border-top:none;}
+  .rlabel{flex:0 0 auto;font:500 13px/1.2 var(--display);color:var(--soft);}
+  .rout{font:500 13px/1.2 var(--mono);color:var(--txt);text-align:right;}
+  .rout.big{font-weight:600;font-size:14px;}
+  .well{flex:0 0 auto;width:104px;height:36px;padding:0 8px;background:var(--bg);border:1px solid var(--border-control);border-radius:10px;color:var(--txt);font:500 14px/1 var(--mono);text-align:center;}
+  .when{flex:1 1 auto;min-width:0;max-width:200px;height:36px;padding:0 8px;background:var(--bg);border:1px solid var(--border-control);border-radius:10px;color:var(--txt);font:400 11px/1 var(--mono);}
+  .well:focus,.when:focus{background:var(--focus);outline:0;}
+  .well:focus-visible,.when:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
+
+  @container (max-width:320px){
+    .body{padding:10px 12px 12px;gap:9px;}
+    .sinput{width:66px;font-size:15px;}
+    .fl-name{font-size:13px;}
+    .fl-sub{font-size:10.5px;white-space:normal;}
+    .defnum{font-size:34px;}
+    .result{padding:10px 12px;}
+    .ghead h2{font-size:20px;}
+    .well{width:88px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .chev,.fill{transition:none;}
+  }
 </style>
 </head>
 <body>
 <h1>Gacha Tracker</h1>
 <main class="games" id="games"></main>
-<div class="foot">values autosave locally · timer refreshes every 30s</div>
+<p class="foot">values autosave locally · timer refreshes every 30s</p>
 <script>
 // gemPerPull: gems per pull | glitterPerPull: 2nd currency per pull (1 = direct tickets)
 // targetMult: Target pulls = target count * this | deficitPerPull: gems per deficit pull (kept as in sheet)
@@ -79,96 +139,180 @@ const GAMES = [
   { id:"HSR", gemPerPull:160, glitterPerPull:20, glitterName:"Starglitter", targetMult:150, deficitPerPull:160, resinCap:300, regenMin:6,
     defaults:{ gems:41843, rolls:15, glitter:1820, pity:90, target:4, resin:22, thresh:60 } },
 ];
+
 const $ = id => document.getElementById(id);
 const NFmt = new Intl.NumberFormat();
 const DFmt = new Intl.DateTimeFormat([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
 function fmtDur(h){ if(!isFinite(h)||h<0) return "—"; if(h<=0) return "full"; const m=Math.round(h*60); return Math.floor(m/60)>0?`${Math.floor(m/60)}h ${m%60}m`:`${m%60}m`; }
 function fmtDate(d){ return DFmt.format(d); }
 function nowLocal(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+const rawOf = id => { const el=$(id); return el?el.value.replace(/[^\d]/g,""):""; };
+const numOf = id => { const r=rawOf(id); return r===""?0:+r; };
+function setText(el,t){ if(el&&el.textContent!==t) el.textContent=t; }
+function setNum(id,v){ const el=$(id); if(!el) return; const r=String(v==null?"":v).replace(/[^\d]/g,""); el.value = r===""?"":NFmt.format(+r); }
+function fmtRaw(v){ return v===""?"":NFmt.format(+v); }
+
+const FIELDS = [
+  ["gems",   "Currency", "gemPulls"],
+  ["rolls",  "Rolls",    null],
+  ["glitter","Tokens",   "glitterPulls"],
+  ["pity",   "Pity",     null],
+  ["target", "Target",   "targetPulls"],
+];
 
 function render(g){
   const p = g.id;
-  const resin = (g.resinCap && g.regenMin) ? `
-    <details class="card"><summary><span>Resin</span><span><span class="dim" id="${p}-resinSummary">—</span> <span class="chev" aria-hidden="true">▸</span></span></summary>
-      <div class="row"><div class="label">Last resin</div><div class="val"><input type="number" id="${p}-resin" name="${p}-resin" min="0" inputmode="numeric" autocomplete="off" aria-label="${p} last resin"></div></div>
-      <div class="row"><div class="label">Last checked</div><div class="val"><input type="datetime-local" id="${p}-checked" name="${p}-checked" autocomplete="off" aria-label="${p} last checked"></div></div>
-      <div class="row"><div class="label">Time since</div><div class="val"><div class="out" id="${p}-since">—</div></div></div>
-      <div class="row"><div class="label">Current</div><div class="val"><div class="out big" id="${p}-cur">—</div></div></div>
-      <div class="row"><div class="label">Full in</div><div class="val"><div class="out" id="${p}-fullIn">—</div></div></div>
-      <div class="row"><div class="label">Full at</div><div class="val"><div class="out" id="${p}-fullAt">—</div></div></div>
-      <div class="row"><div class="label">X</div><div class="val"><input type="number" id="${p}-thresh" name="${p}-thresh" min="0" inputmode="numeric" autocomplete="off" aria-label="${p} resin alert threshold"></div></div>
-      <div class="row"><div class="label">X in</div><div class="val"><div class="out" id="${p}-xIn">—</div></div></div>
-    </details>` : "";
   const slug = p.toLowerCase().replace(/\s+/g,"-");
   const spec = `${g.targetMult} pity · ${g.gemPerPull}/pull · ${g.glitterPerPull} tokens` + (g.resinCap?` · ${g.resinCap} cap · ${g.regenMin}min`:"");
+  const fields = FIELDS.map(([key,label,subId])=>`
+      <div class="field">
+        <label class="fl" for="${p}-${key}">
+          <span class="fl-name">${label}</span>${subId?`\n          <span class="fl-sub" id="${p}-${subId}">—</span>`:""}
+        </label>
+        <div class="stepper">
+          <button type="button" class="step" data-target="${p}-${key}" data-d="-1" aria-label="Decrease ${label} for ${p}">−</button>
+          <input class="num sinput" type="text" id="${p}-${key}" name="${p}-${key}" inputmode="numeric" autocomplete="off" aria-label="${label} for ${p}">
+          <button type="button" class="step" data-target="${p}-${key}" data-d="1" aria-label="Increase ${label} for ${p}">+</button>
+        </div>
+      </div>`).join("");
+  const hasResin = !!(g.resinCap && g.regenMin);
+  const resin = hasResin ? `
+    <details class="resin">
+      <summary class="resin-btn">
+        <span>Resin</span>
+        <span class="resin-right"><span id="${p}-resinSummary">—</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </summary>
+      <div class="resin-body">
+        <div class="rrow"><label class="rlabel" for="${p}-resin">Last resin</label><input class="num well" type="text" id="${p}-resin" name="${p}-resin" inputmode="numeric" autocomplete="off" aria-label="Last resin for ${p}"></div>
+        <div class="rrow"><label class="rlabel" for="${p}-checked">Last checked</label><input class="when" type="datetime-local" id="${p}-checked" name="${p}-checked" autocomplete="off" aria-label="Last checked for ${p}"></div>
+        <div class="rrow"><div class="rlabel">Time since</div><div class="rout" id="${p}-since">—</div></div>
+        <div class="rrow"><div class="rlabel">Current</div><div class="rout big" id="${p}-cur">—</div></div>
+        <div class="rrow"><div class="rlabel">Full in</div><div class="rout" id="${p}-fullIn">—</div></div>
+        <div class="rrow"><div class="rlabel">Full at</div><div class="rout" id="${p}-fullAt">—</div></div>
+        <div class="rrow"><label class="rlabel" for="${p}-thresh">X</label><input class="num well" type="text" id="${p}-thresh" name="${p}-thresh" inputmode="numeric" autocomplete="off" aria-label="Resin alert threshold for ${p}"></div>
+        <div class="rrow"><div class="rlabel">X in</div><div class="rout" id="${p}-xIn">—</div></div>
+      </div>
+    </details>` : "";
   return `<div class="game" id="game-${p}">
     <div class="ghead" style="background-image:url('assets/${slug}.jpg')">
       <h2 translate="no">${p}</h2>
-      <span class="info-wrap"><button class="info" aria-label="${p} rates and limits" aria-describedby="${p}-tip">i</button><span class="tip" role="tooltip" id="${p}-tip">${spec}</span></span>
+      <span class="info-wrap">
+        <button type="button" class="info" aria-label="${p} rates and limits" aria-describedby="${p}-tip">i</button>
+        <span class="tip" role="tooltip" id="${p}-tip">${spec}</span>
+      </span>
     </div>
-    <div class="card">
-      <div class="row"><div class="label">Currency</div><div class="val"><input type="number" id="${p}-gems" name="${p}-gems" min="0" inputmode="numeric" autocomplete="off" aria-label="${p} currency"><div class="out dim" id="${p}-gemPulls">—</div></div></div>
-      <div class="row"><div class="label">Rolls</div><div class="val"><input type="number" id="${p}-rolls" name="${p}-rolls" min="0" inputmode="numeric" autocomplete="off" aria-label="${p} rolls"></div></div>
-      <div class="row"><div class="label">Tokens</div><div class="val"><input type="number" id="${p}-glitter" name="${p}-glitter" min="0" inputmode="numeric" autocomplete="off" aria-label="${p} tokens"><div class="out dim" id="${p}-glitterPulls">—</div></div></div>
-      <div class="row"><div class="label">Eff. Rolls</div><div class="val"><div class="out big" id="${p}-eff">—</div></div></div>
-      <div class="row"><div class="label">Pity</div><div class="val"><input type="number" id="${p}-pity" name="${p}-pity" min="0" inputmode="numeric" autocomplete="off" aria-label="${p} pity"></div></div>
-      <div class="row"><div class="label">Target</div><div class="val"><input type="number" id="${p}-target" name="${p}-target" min="0" inputmode="numeric" autocomplete="off" aria-label="${p} target count"><div class="out dim" id="${p}-targetPulls">—</div></div></div>
-      <div class="row"><div class="label">Deficit</div><div class="val"><div class="out big" id="${p}-defPulls">—</div><div class="out dim" id="${p}-defGems">—</div></div></div>
+    <div class="body">
+      <section class="result" aria-live="polite">
+        <div class="result-top">
+          <div class="deficit"><b class="defnum" id="${p}-defPulls">—</b><span id="${p}-defLabel">pulls short</span></div>
+          <div class="need"><span class="cat">Need</span><b id="${p}-defGems">—</b></div>
+        </div>
+        <div class="bar" id="${p}-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progress toward target"><span class="fill" id="${p}-fill"></span></div>
+        <div class="caption">
+          <span class="a"><span id="${p}-eff">—</span> eff. rolls</span>
+          <span class="b"><span id="${p}-need">—</span> needed (<span id="${p}-targetEcho">—</span> − <span id="${p}-pityEcho">—</span> pity)</span>
+        </div>
+      </section>
+      <div class="fields">${fields}
+      </div>
+      ${resin}
     </div>
-    ${resin}
   </div>`;
 }
 
 function calc(g){
   const p = g.id;
-  const gv = id => $(`${p}-${id}`) ? $(`${p}-${id}`).value : "";
-  const gem=+gv("gems")||0, rol=+gv("rolls")||0, gli=+gv("glitter")||0, pity=+gv("pity")||0, tgt=+gv("target")||0;
+  const gem=numOf(`${p}-gems`), rol=numOf(`${p}-rolls`), gli=numOf(`${p}-glitter`), pity=numOf(`${p}-pity`), tgt=numOf(`${p}-target`);
   const gp=Math.floor(gem/g.gemPerPull), sp=Math.floor(gli/g.glitterPerPull);
-  const eff=gp+rol+sp, need=tgt*g.targetMult, def=need-pity-eff;
-  $(`${p}-gemPulls`).textContent=`${gp} pulls`;
-  $(`${p}-glitterPulls`).textContent=`${sp} pulls`;
-  $(`${p}-eff`).textContent=eff;
-  $(`${p}-targetPulls`).textContent=`${need} pulls`;
-  $(`${p}-defPulls`).textContent=def<=0?"done ✓":`${def} pulls`;
-  $(`${p}-defPulls`).className="out big "+(def<=0?"good":"warn");
-  $(`${p}-defGems`).textContent=def<=0?"0":NFmt.format(def*g.deficitPerPull);
+  const eff=gp+rol+sp, need=tgt*g.targetMult, pulls=need-pity, def=need-pity-eff;
+
+  setText($(`${p}-gemPulls`), `= ${NFmt.format(gp)} pulls`);
+  setText($(`${p}-glitterPulls`), `= ${NFmt.format(sp)} pulls`);
+  setText($(`${p}-targetPulls`), `= ${NFmt.format(need)} pulls`);
+
+  const short = def>0, big=$(`${p}-defPulls`);
+  setText(big, NFmt.format(short?def:Math.abs(def)));
+  big.className = "defnum"+(short?"":" done");
+  setText($(`${p}-defLabel`), short?"pulls short":(def===0?"goal reached":"pulls spare"));
+  setText($(`${p}-defGems`), short?NFmt.format(def*g.deficitPerPull):"0");
+  setText($(`${p}-eff`), NFmt.format(eff));
+  setText($(`${p}-need`), NFmt.format(pulls));
+  setText($(`${p}-targetEcho`), NFmt.format(need));
+  setText($(`${p}-pityEcho`), NFmt.format(pity));
+
+  const pct = pulls<=0 ? 100 : Math.max(0, Math.min(100, eff/pulls*100));
+  $(`${p}-fill`).style.width = pct.toFixed(1)+"%";
+  $(`${p}-bar`).setAttribute("aria-valuenow", String(Math.round(pct)));
+
+  const root=$("game-"+p);
+  if(root) root.querySelectorAll('.step[data-d="-1"]').forEach(b=>{ b.disabled = numOf(b.dataset.target)<=0; });
+
   if(g.resinCap && g.regenMin){
-    const last=+gv("resin")||0, t=gv("checked")?new Date(gv("checked")):null;
+    const last=numOf(`${p}-resin`), t=$(`${p}-checked`).value?new Date($(`${p}-checked`).value):null;
     if(t&&!isNaN(t)){
       const elMin=Math.max(0,(Date.now()-t.getTime())/60000);
       const cur=Math.min(g.resinCap,last+elMin/g.regenMin);
-      const fullH=(g.resinCap-cur)*g.regenMin/60, X=+gv("thresh")||0, xH=Math.max(0,(X-cur)*g.regenMin/60);
-      $(`${p}-since`).textContent=`${Math.floor(elMin/60)}h ${Math.floor(elMin%60)}m ago`;
-      $(`${p}-cur`).textContent=`${Math.floor(cur)} / ${g.resinCap}`;
-      $(`${p}-fullIn`).textContent=fmtDur(fullH);
-      $(`${p}-fullAt`).textContent=fullH<=0?"—":fmtDate(new Date(Date.now()+fullH*3600e3));
-      $(`${p}-xIn`).textContent=X<=0?"—":(xH<=0?"reached":fmtDur(xH));
-      $(`${p}-resinSummary`).textContent=`${Math.floor(cur)}/${g.resinCap}`;
-    } else { ["since","cur","fullIn","fullAt","xIn"].forEach(k=>$(`${p}-${k}`).textContent="—"); $(`${p}-resinSummary`).textContent="—"; }
+      const fullH=(g.resinCap-cur)*g.regenMin/60, X=numOf(`${p}-thresh`), xH=Math.max(0,(X-cur)*g.regenMin/60);
+      setText($(`${p}-since`), `${Math.floor(elMin/60)}h ${Math.floor(elMin%60)}m ago`);
+      setText($(`${p}-cur`), `${Math.floor(cur)} / ${g.resinCap}`);
+      setText($(`${p}-fullIn`), fmtDur(fullH));
+      setText($(`${p}-fullAt`), fullH<=0?"—":fmtDate(new Date(Date.now()+fullH*3600e3)));
+      setText($(`${p}-xIn`), X<=0?"—":(xH<=0?"reached":fmtDur(xH)));
+      setText($(`${p}-resinSummary`), `${Math.floor(cur)}/${g.resinCap}`);
+    } else {
+      ["since","cur","fullIn","fullAt","xIn"].forEach(k=>setText($(`${p}-${k}`),"—"));
+      setText($(`${p}-resinSummary`),"—");
+    }
   }
-  const data={gems:gv("gems"),rolls:gv("rolls"),glitter:gv("glitter"),pity:gv("pity"),target:gv("target")};
-  if(g.resinCap){ data.resin=gv("resin"); data.checked=gv("checked"); data.thresh=gv("thresh"); }
-  localStorage.setItem("gacha-"+p,JSON.stringify(data));
+  const data={gems:rawOf(`${p}-gems`),rolls:rawOf(`${p}-rolls`),glitter:rawOf(`${p}-glitter`),pity:rawOf(`${p}-pity`),target:rawOf(`${p}-target`)};
+  if(g.resinCap){ data.resin=rawOf(`${p}-resin`); data.checked=$(`${p}-checked`).value; data.thresh=rawOf(`${p}-thresh`); }
+  localStorage.setItem("gacha-"+p, JSON.stringify(data));
 }
 function calcAll(){ GAMES.forEach(calc); }
 
 (function init(){
   $("games").innerHTML = GAMES.map(render).join("");
+
+  // numeric inputs: raw while focused, thousands-separated when not
+  document.querySelectorAll(".num").forEach(el=>{
+    el.addEventListener("focus", ()=>{ el.value = el.value.replace(/[^\d]/g,""); });
+    el.addEventListener("blur", ()=>{ el.value = fmtRaw(el.value.replace(/[^\d]/g,"")); calcAll(); });
+  });
+  document.addEventListener("input", e=>{
+    const el = e.target;
+    if(!el.classList || !el.classList.contains("num")) return;
+    const raw = el.value.replace(/[^\d]/g,"");
+    if(el.value !== raw) el.value = raw;
+    calcAll();
+  });
+
+  // steppers
+  document.querySelectorAll(".step").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const inp = $(btn.dataset.target);
+      const v = Math.max(0, numOf(btn.dataset.target) + (+btn.dataset.d));
+      inp.value = String(v);
+      inp.dispatchEvent(new Event("input",{bubbles:true}));
+      inp.value = NFmt.format(v);
+    });
+  });
+
   GAMES.forEach(g=>{
     const p=g.id; let s={}; try{ s=JSON.parse(localStorage.getItem("gacha-"+p)||"{}"); }catch{}
-    $(`${p}-gems`).value=s.gems??g.defaults.gems; $(`${p}-rolls`).value=s.rolls??g.defaults.rolls;
-    $(`${p}-glitter`).value=s.glitter??g.defaults.glitter; $(`${p}-pity`).value=s.pity??g.defaults.pity;
-    $(`${p}-target`).value=s.target??g.defaults.target;
-    if(g.resinCap){
-      $(`${p}-resin`).value=s.resin??g.defaults.resin;
-      $(`${p}-thresh`).value=s.thresh??g.defaults.thresh;
-      if(s.checked)$(`${p}-checked`).value=s.checked;
-      ["gems","rolls","glitter","pity","target","resin","checked","thresh"].forEach(k=>$(`${p}-${k}`).addEventListener("input",calcAll));
-      $(`${p}-resin`).addEventListener("input",()=>{ $(`${p}-checked`).value=nowLocal(); });
-    } else {
-      ["gems","rolls","glitter","pity","target"].forEach(k=>$(`${p}-${k}`).addEventListener("input",calcAll));
+    setNum(`${p}-gems`, s.gems??g.defaults.gems);
+    setNum(`${p}-rolls`, s.rolls??g.defaults.rolls);
+    setNum(`${p}-glitter`, s.glitter??g.defaults.glitter);
+    setNum(`${p}-pity`, s.pity??g.defaults.pity);
+    setNum(`${p}-target`, s.target??g.defaults.target);
+    if(g.resinCap && g.regenMin){
+      setNum(`${p}-resin`, s.resin??g.defaults.resin);
+      setNum(`${p}-thresh`, s.thresh??g.defaults.thresh);
+      if(s.checked) $(`${p}-checked`).value=s.checked;
+      $(`${p}-checked`).addEventListener("input", calcAll);
+      $(`${p}-resin`).addEventListener("input", ()=>{ $(`${p}-checked`).value=nowLocal(); });
     }
   });
+
   calcAll(); setInterval(calcAll,30000);
 })();
 </script>
