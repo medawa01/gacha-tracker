@@ -16,7 +16,7 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 
 - `index.html` — all CSS + JS inline. Renders one card per game from the `GAMES` array.
 - `assets/*.jpg` — 1200x400 header art, slug = lowercase id (`stella-sora.jpg`).
-- Each card: Currency→pulls, Rolls, Tokens→pulls, Eff. Rolls, Pity, Target, Deficit (+currency), collapsible Resin timer (last value + timestamp → current / full-in / full-at / X-in).
+- Each card: header banner (game name + ⓘ infotip), result block (deficit / need / progress bar / eff. rolls), five stepper rows (Currency, Rolls, Tokens, Pity, Target — derived pull counts under each label), collapsible Resin timer (last value + timestamp → current / full-in / full-at / X-in).
 - Only per-game config changes: `gemPerPull, glitterPerPull, targetMult, deficitPerPull, resinCap, regenMin`.
 - State in `localStorage` key `gacha-<ID>`; timer recalculates every 30s.
 
@@ -39,6 +39,18 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 - `(!)` deficit multiplier kept exactly as in the sheet even where it differs from gem cost — user decision; revisit if wrong in-game.
 - Labels: sheet's "Gems"/"Starglitter" renamed to "Currency"/"Tokens" (Genshin-specific otherwise). "Target" = desired guaranteed 5-stars; "X" = resin alert threshold (auto-stamps timestamp when Last resin edited).
 
+## Design system (card redesign)
+
+Visual spec: `G:\Downloads\OpenCode\NTE Pull Calculator Card – Redesign Spec.md` (written for one card; applied to all ten).
+
+- Tokens in `:root` — page `#05060B`, card/well `#0D0F1B`, surface `#161828`, border `#262A40`, control border `#2A2F48`, divider `#23273D`, text `#ECEEF8`/`#C9CDE3`/`#9AA0BC`, accent (cyan) `#5CE1E6`, warning (coral) `#FF9A5C`, hover `#1B1F33`, focus `#161A2C`.
+- Fonts: Space Grotesk (display/labels) + IBM Plex Mono (numbers/captions) from Google Fonts. Offline falls back to system-ui/monospace.
+- Card = 20px radius; result block 14px; stepper/resin button 12px; progress bar 4px.
+- Steppers: 44×44 − / 84px input / 44×44 + (`.sinput`). Inputs are `type="text"` + `inputmode="numeric"`, no spinners; raw digits while focused, `Intl`-formatted on blur; − disabled at 0. Values are clamped at ≥ 0; step is 1 (the old native inputs had no `step`).
+- Numbers: `rawOf`/`numOf` strip separators on read; `localStorage` always stores raw digits, so old saved values stay valid.
+- Layout: 5 columns at ≥1280px viewport, else auto-fit ≥250px. Narrow cards use a container query (`@container (max-width:320px)`) that shrinks the input to 66px and wraps the derived subtext; 44px hit areas are kept.
+- Result block: deficit = `need − pity − eff` (unchanged math); `pullsNeeded` shown in the caption is `target×mult − pity`; bar fill = `eff/pullsNeeded`. Goal-reached states: "pulls spare" (accent) / "goal reached" at 0 — this replaced the old "done ✓" wording.
+
 ## Workflow rules for this project
 
 - Work locally, commit locally. Push (`git push origin main`) ONLY when the user says "push".
@@ -52,3 +64,4 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 - Commits as `medawa <medawa01@users.noreply.github.com>`.
 - Global skill `web-design-guidelines` installed (`~\.agents\skills\`) — page already audited against it (labels, focus-visible, Intl formatters, landmarks, reduced-motion).
 - JS check trick: extract `<script>` to a temp file, run `node --check` on it.
+- Headless UI check (no browser needed on screen): run Edge headless (`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`) with `--headless=new --dump-dom --virtual-time-budget=6000 --user-data-dir=<temp>`. Inject a `<script>` into a temp copy of the page that measures/getRect()s things and writes results into a `<pre id="diag">`, then grep the dump. This is how overflow, collisions and stepper behaviour were verified. Pass `--window-size=W,H` as its own argv entry (build the argument list as an array; PowerShell string-concat mangles it and Edge then exits 13).
