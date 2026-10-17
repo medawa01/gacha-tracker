@@ -90,9 +90,8 @@
   .rout{font:500 13px/1.2 var(--mono);color:var(--txt);text-align:right;}
   .rout.big{font-weight:600;font-size:14px;}
   .well{flex:0 0 auto;width:104px;height:36px;padding:0 8px;background:var(--bg);border:1px solid var(--border-control);border-radius:10px;color:var(--txt);font:500 14px/1 var(--mono);text-align:center;}
-  .when{flex:1 1 auto;min-width:0;max-width:200px;height:36px;padding:0 8px;background:var(--bg);border:1px solid var(--border-control);border-radius:10px;color:var(--txt);font:400 11px/1 var(--mono);}
-  .well:focus,.when:focus{background:var(--focus);outline:0;}
-  .well:focus-visible,.when:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
+  .well:focus{background:var(--focus);outline:0;}
+  .well:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
 
   @container (max-width:320px){
     .body{padding:10px 12px 12px;gap:9px;}
@@ -128,7 +127,7 @@ const GAMES = [
     defaults:{ gems:62404, rolls:5, glitter:7650, pity:0, target:6, resin:22, thresh:120 } },
   { id:"CZN", gemPerPull:160, glitterPerPull:10, glitterName:"Starglitter", targetMult:120, deficitPerPull:160, resinCap:314, regenMin:6,
     defaults:{ gems:30731, rolls:13, glitter:958, pity:33, target:3, resin:105, thresh:20 } },
-  { id:"Endfield", gemPerPull:500, glitterPerPull:25, glitterName:"Starglitter", targetMult:120, deficitPerPull:160, resinCap:350, regenMin:7.2,
+  { id:"Endfield", gemPerPull:500, glitterPerPull:25, glitterName:"Starglitter", targetMult:120, deficitPerPull:160, resinCap:360, regenMin:7.2,
     defaults:{ gems:45275, rolls:0, glitter:1200, pity:0, target:2, resin:8, thresh:20 } },
   { id:"Nikke", gemPerPull:300, glitterPerPull:1, glitterName:"Tickets", targetMult:200, deficitPerPull:300, resinCap:null, regenMin:null,
     defaults:{ gems:70205, rolls:0, glitter:1513, pity:0, target:9 } },
@@ -142,10 +141,10 @@ const GAMES = [
 
 const $ = id => document.getElementById(id);
 const NFmt = new Intl.NumberFormat();
-const DFmt = new Intl.DateTimeFormat([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
 function fmtDur(h){ if(!isFinite(h)||h<0) return "—"; if(h<=0) return "full"; const m=Math.round(h*60); return Math.floor(m/60)>0?`${Math.floor(m/60)}h ${m%60}m`:`${m%60}m`; }
-function fmtDate(d){ return DFmt.format(d); }
 function nowLocal(){ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+function pad2(n){ return String(n).padStart(2,"0"); }
+function fmtStamp(d){ return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${String(d.getFullYear()).slice(-2)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
 const rawOf = id => { const el=$(id); return el?el.value.replace(/[^\d]/g,""):""; };
 const numOf = id => { const r=rawOf(id); return r===""?0:+r; };
 function setText(el,t){ if(el&&el.textContent!==t) el.textContent=t; }
@@ -184,7 +183,7 @@ function render(g){
       </summary>
       <div class="resin-body">
         <div class="rrow"><label class="rlabel" for="${p}-resin">Last resin</label><input class="num well" type="text" id="${p}-resin" name="${p}-resin" inputmode="numeric" autocomplete="off" aria-label="Last resin for ${p}"></div>
-        <div class="rrow"><label class="rlabel" for="${p}-checked">Last checked</label><input class="when" type="datetime-local" id="${p}-checked" name="${p}-checked" autocomplete="off" aria-label="Last checked for ${p}"></div>
+        <div class="rrow"><div class="rlabel">Last checked</div><div class="rout" id="${p}-checked">—</div></div>
         <div class="rrow"><div class="rlabel">Time since</div><div class="rout" id="${p}-since">—</div></div>
         <div class="rrow"><div class="rlabel">Current</div><div class="rout big" id="${p}-cur">—</div></div>
         <div class="rrow"><div class="rlabel">Full in</div><div class="rout" id="${p}-fullIn">—</div></div>
@@ -248,27 +247,29 @@ function calc(g){
   if(root) root.querySelectorAll('.step[data-d="-1"]').forEach(b=>{ b.disabled = numOf(b.dataset.target)<=0; });
 
   if(g.resinCap && g.regenMin){
-    const last=numOf(`${p}-resin`), t=$(`${p}-checked`).value?new Date($(`${p}-checked`).value):null;
+    const last=numOf(`${p}-resin`), t=CHECKED[p]?new Date(CHECKED[p]):null;
     if(t&&!isNaN(t)){
       const elMin=Math.max(0,(Date.now()-t.getTime())/60000);
       const cur=Math.min(g.resinCap,last+elMin/g.regenMin);
       const fullH=(g.resinCap-cur)*g.regenMin/60, X=numOf(`${p}-thresh`), xH=Math.max(0,(X-cur)*g.regenMin/60);
+      setText($(`${p}-checked`), fmtStamp(t));
       setText($(`${p}-since`), `${Math.floor(elMin/60)}h ${Math.floor(elMin%60)}m ago`);
       setText($(`${p}-cur`), `${Math.floor(cur)} / ${g.resinCap}`);
       setText($(`${p}-fullIn`), fmtDur(fullH));
-      setText($(`${p}-fullAt`), fullH<=0?"—":fmtDate(new Date(Date.now()+fullH*3600e3)));
+      setText($(`${p}-fullAt`), fullH<=0?"—":fmtStamp(new Date(Date.now()+fullH*3600e3)));
       setText($(`${p}-xIn`), X<=0?"—":(xH<=0?"reached":fmtDur(xH)));
       setText($(`${p}-resinSummary`), `${Math.floor(cur)}/${g.resinCap}`);
     } else {
-      ["since","cur","fullIn","fullAt","xIn"].forEach(k=>setText($(`${p}-${k}`),"—"));
+      ["checked","since","cur","fullIn","fullAt","xIn"].forEach(k=>setText($(`${p}-${k}`),"—"));
       setText($(`${p}-resinSummary`),"—");
     }
   }
   const data={gems:rawOf(`${p}-gems`),rolls:rawOf(`${p}-rolls`),glitter:rawOf(`${p}-glitter`),pity:rawOf(`${p}-pity`),target:rawOf(`${p}-target`)};
-  if(g.resinCap){ data.resin=rawOf(`${p}-resin`); data.checked=$(`${p}-checked`).value; data.thresh=rawOf(`${p}-thresh`); }
+  if(g.resinCap){ data.resin=rawOf(`${p}-resin`); data.checked=CHECKED[p]||""; data.thresh=rawOf(`${p}-thresh`); }
   localStorage.setItem("gacha-"+p, JSON.stringify(data));
 }
 function calcAll(){ GAMES.forEach(calc); }
+const CHECKED = {};   // per-game "last checked" stamp (local "YYYY-MM-DDTHH:mm"), set only by editing Last resin
 
 (function init(){
   $("games").innerHTML = GAMES.map(render).join("");
@@ -307,9 +308,8 @@ function calcAll(){ GAMES.forEach(calc); }
     if(g.resinCap && g.regenMin){
       setNum(`${p}-resin`, s.resin??g.defaults.resin);
       setNum(`${p}-thresh`, s.thresh??g.defaults.thresh);
-      if(s.checked) $(`${p}-checked`).value=s.checked;
-      $(`${p}-checked`).addEventListener("input", calcAll);
-      $(`${p}-resin`).addEventListener("input", ()=>{ $(`${p}-checked`).value=nowLocal(); });
+      CHECKED[p] = s.checked || "";
+      $(`${p}-resin`).addEventListener("input", ()=>{ CHECKED[p]=nowLocal(); });
     }
   });
 

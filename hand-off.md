@@ -50,6 +50,7 @@ Visual spec: `G:\Downloads\OpenCode\NTE Pull Calculator Card – Redesign Spec.m
 - Numbers: `rawOf`/`numOf` strip separators on read; `localStorage` always stores raw digits, so old saved values stay valid.
 - Layout: 5 columns at ≥1280px viewport, else auto-fit ≥250px. Narrow cards use a container query (`@container (max-width:320px)`) that shrinks the input to 66px and wraps the derived subtext; 44px hit areas are kept.
 - Result block: deficit = `need − pity − eff` (unchanged math); `pullsNeeded` shown in the caption is `target×mult − pity`; bar fill = `eff/pullsNeeded`. Goal-reached states: "pulls spare" (accent) / "goal reached" at 0 — this replaced the old "done ✓" wording.
+- Resin timestamps: "Last checked" and "Full at" are read-only computed values, formatted `dd/MM/yy HH:mm` by `fmtStamp()` (locale-independent on purpose). "Last checked" is set only by `CHECKED[p] = nowLocal()` when Last resin is edited — there is no date picker. Storage keeps the old `checked` shape (`YYYY-MM-DDTHH:mm`), so existing saves still load.
 
 ## Workflow rules for this project
 
@@ -62,6 +63,6 @@ Visual spec: `G:\Downloads\OpenCode\NTE Pull Calculator Card – Redesign Spec.m
 - Git + gh CLI via winget, but child shells may lack them on PATH (installed after the agent service started) — use full paths: `C:\Program Files\Git\bin\git.exe`, `C:\Program Files\GitHub CLI\gh.exe`.
 - No `&&` or `~` in PowerShell; use `;` and full paths.
 - Commits as `medawa <medawa01@users.noreply.github.com>`.
-- Global skill `web-design-guidelines` installed (`~\.agents\skills\`) — page already audited against it (labels, focus-visible, Intl formatters, landmarks, reduced-motion).
+- Global skill `web-design-guidelines` installed (`~\.agents\skills\`) — page already audited against it (labels, focus-visible, Intl formatters, landmarks, reduced-motion). Exception: resin timestamps use a deliberate `dd/MM/yy HH:mm` formatter instead of `Intl.DateTimeFormat`, so the minutes stay visible in narrow cards.
 - JS check trick: extract `<script>` to a temp file, run `node --check` on it.
 - Headless UI check (no browser needed on screen): run Edge headless (`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`) with `--headless=new --dump-dom --virtual-time-budget=6000 --user-data-dir=<temp>`. Inject a `<script>` into a temp copy of the page that measures/getRect()s things and writes results into a `<pre id="diag">`, then grep the dump. This is how overflow, collisions and stepper behaviour were verified. Pass `--window-size=W,H` as its own argv entry (build the argument list as an array; PowerShell string-concat mangles it and Edge then exits 13).
