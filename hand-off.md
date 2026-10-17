@@ -31,7 +31,7 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 | Genshin | 160 | 5 | 150 | 160 | 200 / 8min |
 | GFL2 | 150 | 30 | 130 | 160 (!) | 260 / 5min |
 | CZN | 160 | 10 | 120 | 160 | 314 / 6min |
-| Endfield | 500 | 25 | 120 | 160 (!) | 350 / 7.2min |
+| Endfield | 500 | 25 | 120 | 160 (!) | 360 / 7.2min |
 | Nikke | 300 | 1 | 200 | 300 | none |
 | Stella Sora | 300 | 100 | 120 | 160 (!) | none |
 | WuWa | 160 | 8 | 150 | 160 | 240 / 6min |
