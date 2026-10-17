@@ -15,6 +15,8 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 ## How it works
 
 - `index.html` — all CSS + JS inline. Renders one card per game from the `GAMES` array.
+- All the math lives in `computePulls` / `computeResin` (DOM-free); `calc()` only reads the DOM, calls them, writes the DOM, then persists. Don't put math back into `calc()`.
+- `test/calc.test.js` — `node test/calc.test.js` (40 assertions, no deps).
 - `assets/*.jpg` — 1200x400 header art, slug = lowercase id (`stella-sora.jpg`).
 - Each card: header banner (game name + ⓘ infotip), result block (deficit / need / progress bar / eff. rolls), five stepper rows (Currency, Rolls, Tokens, Pity, Target — derived pull counts under each label), collapsible Resin timer (last value + timestamp → current / full-in / full-at / X-in).
 - Only per-game config changes: `gemPerPull, glitterPerPull, targetMult, deficitPerPull, resinCap, regenMin`.
@@ -51,6 +53,19 @@ Visual spec: `G:\Downloads\OpenCode\NTE Pull Calculator Card – Redesign Spec.m
 - Layout: 5 columns at ≥1280px viewport, else auto-fit ≥250px. Narrow cards use a container query (`@container (max-width:320px)`) that shrinks the input to 66px and wraps the derived subtext; 44px hit areas are kept.
 - Result block: deficit = `need − pity − eff` (unchanged math); `pullsNeeded` shown in the caption is `target×mult − pity`; bar fill = `eff/pullsNeeded`. Goal-reached states: "pulls spare" (accent) / "goal reached" at 0 — this replaced the old "done ✓" wording.
 - Resin timestamps: "Last checked" and "Full at" are read-only computed values, formatted `dd/MM/yy HH:mm` by `fmtStamp()` (locale-independent on purpose). "Last checked" is set only by `CHECKED[p] = nowLocal()` when Last resin is edited — there is no date picker. Storage keeps the old `checked` shape (`YYYY-MM-DDTHH:mm`), so existing saves still load.
+
+## Anchors — grep these instead of reading the whole file
+
+`index.html` is ~330 lines / ~21KB, one file. Jump straight to a region rather than loading it all:
+
+- **CSS:** `/* --- tokens ---`, `--- page shell`, `--- card frame`, `--- header banner`, `--- card body`, `--- result block`, `--- input rows`, `--- resin panel`, `--- narrow cards`, `--- motion`
+- **JS:** `/* ===== data:`, `/* ===== pure math:`, `/* ===== helpers:`, `/* ===== view:`, `/* ===== update:`, `/* ===== startup:`
+- The **pure math** section is the seam: it has no DOM access, so it can be lifted out to its own file verbatim if the project ever grows a second page. `render()`/`calc()` are coupled by element ids (`<id>-defPulls`, `<id>-resin`, …) — keep any future split along the math/view line, not the render/calc line.
+
+## Tests
+
+- `node test/calc.test.js` — pure-math suite (pull counts, deficit, goal/spare states, clamps, resin regen, formatters, config sanity). No browser, no DOM stubs, no dependencies.
+- For layout/interaction changes still use the headless Edge check below; for math changes the node suite is enough.
 
 ## Workflow rules for this project
 
