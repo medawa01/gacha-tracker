@@ -21,6 +21,7 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 - Each card: header banner (game name + ⓘ infotip), result block (deficit / need / progress bar / eff. rolls), five stepper rows (Currency, Rolls, Tokens, Pity, Target — derived pull counts under each label), collapsible Resin timer (last value + timestamp → current / full-in / full-at / X-in).
 - Only per-game config changes: `gemPerPull, glitterPerPull, targetMult, deficitPerPull, resinCap, regenMin`.
 - State in `localStorage` key `gacha-<ID>`; timer recalculates every 30s.
+- Header buttons: **Export JSON** downloads `gacha-tracker-YYYY-MM-DD.json` = `{ "<ID>": {field:value} }` for all ten games — the stored shape verbatim, no envelope or version tag. **Import JSON** writes those keys back to `localStorage`, repaints inputs (`loadState()`) and recalculates. It confirms once, then overwrites only the keys the file names, so a hand-edited or partial file (`{"HSR":{"gems":"999"}}`) works. Status line under the buttons reports the result (accent = done, coral = refused).
 
 ## Sheet → app values (verified against GI.xlsx computed values)
 
@@ -56,10 +57,11 @@ Visual spec: `G:\Downloads\OpenCode\NTE Pull Calculator Card – Redesign Spec.m
 
 ## Anchors — grep these instead of reading the whole file
 
-`index.html` is ~330 lines / ~21KB, one file. Jump straight to a region rather than loading it all:
+`index.html` is ~425 lines / ~25KB, one file. Jump straight to a region rather than loading it all:
 
-- **CSS:** `/* --- tokens ---`, `--- page shell`, `--- card frame`, `--- header banner`, `--- card body`, `--- result block`, `--- input rows`, `--- resin panel`, `--- narrow cards`, `--- motion`
-- **JS:** `/* ===== data:`, `/* ===== pure math:`, `/* ===== helpers:`, `/* ===== view:`, `/* ===== update:`, `/* ===== startup:`
+- **CSS:** `/* --- tokens ---`, `--- page shell`, `--- tools`, `--- card frame`, `--- header banner`, `--- card body`, `--- result block`, `--- input rows`, `--- resin panel`, `--- narrow cards`, `--- motion`
+- **JS:** `/* ===== data:`, `/* ===== pure math:`, `/* ===== helpers:`, `/* ===== view:`, `/* ===== update:`, `/* ===== backup:`, `/* ===== startup:`
+- `loadState()` (startup section) is the single "storage → inputs" path: startup and import both call it, then `calcAll()`.
 - The **pure math** section is the seam: it has no DOM access, so it can be lifted out to its own file verbatim if the project ever grows a second page. `render()`/`calc()` are coupled by element ids (`<id>-defPulls`, `<id>-resin`, …) — keep any future split along the math/view line, not the render/calc line.
 
 ## Tests

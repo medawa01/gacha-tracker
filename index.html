@@ -27,6 +27,16 @@
   .games{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));align-items:start;}
   @media (min-width:1280px){.games{grid-template-columns:repeat(5,1fr);}}
 
+  /* --- tools: export / import the saved data --- */
+  .tools{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0 0 8px;}
+  .tool{height:44px;padding:0 18px;background:var(--bg);border:1px solid var(--border-control);border-radius:12px;color:var(--soft);font:600 13px/1 var(--display);cursor:pointer;}
+  .tool:hover{background:var(--hover);color:#fff;}
+  .tool:active{background:var(--focus);}
+  .tool:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
+  .status{min-height:1.4em;margin:0 0 8px;text-align:center;font:400 11px/1.4 var(--mono);color:var(--muted);}
+  .status[data-tone="ok"]{color:var(--acc);}
+  .status[data-tone="err"]{color:var(--warn);}
+
   /* --- card frame --- */
   .game{container-type:inline-size;background:var(--bg);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.55);}
 
@@ -114,7 +124,15 @@
 </style>
 </head>
 <body>
-<h1>Gacha Tracker</h1>
+<header>
+  <h1>Gacha Tracker</h1>
+  <div class="tools">
+    <button type="button" class="tool" id="exportBtn">Export JSON</button>
+    <button type="button" class="tool" id="importBtn">Import JSON</button>
+    <input type="file" id="importFile" accept="application/json,.json" aria-label="Choose a gacha-tracker JSON backup to import" hidden>
+  </div>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+</header>
 <main class="games" id="games"></main>
 <p class="foot">values autosave locally · timer refreshes every 30s</p>
 <script>
@@ -308,7 +326,56 @@ function calc(g){
 function calcAll(){ GAMES.forEach(calc); }
 const CHECKED = {};   // per-game "last checked" stamp (local "YYYY-MM-DDTHH:mm"), set only by editing Last resin
 
+/* ===== backup: the persisted values as a .json file =====
+   The file is exactly the stored shape — { "<game id>": { field: value } } — so a
+   hand-edited or partial file imports fine. */
+function exportData(){
+  const out = {};
+  GAMES.forEach(g=>{
+    try{ out[g.id] = JSON.parse(localStorage.getItem("gacha-"+g.id)||"{}"); }catch{ out[g.id] = {}; }
+  });
+  const name = `gacha-tracker-${nowLocal().slice(0,10)}.json`;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(out,null,2)+"\n"],{type:"application/json"}));
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  return name;
+}
+function importData(data){   // throws on anything that is not a game map
+  if(!data || typeof data !== "object" || Array.isArray(data)) throw new Error("not a game map");
+  Object.keys(data).forEach(id=>localStorage.setItem("gacha-"+id, JSON.stringify(data[id])));
+  loadState(); calcAll();
+}
+function setStatus(msg, tone){
+  const el = $("status"); if(!el) return;
+  el.textContent = msg||""; el.dataset.tone = tone||"";
+}
+async function importBackupFile(file){
+  let data;
+  try{ data = JSON.parse(await file.text()); }
+  catch{ return setStatus("Could not read that file as JSON.", "err"); }
+  if(!confirm(`Replace all saved values with "${file.name}"?`)) return setStatus("Import cancelled — nothing changed.", "");
+  try{ importData(data); setStatus(`Imported "${file.name}".`, "ok"); }
+  catch{ setStatus(`"${file.name}" is not a gacha-tracker backup.`, "err"); }
+}
+
 /* ===== startup: mount cards, wire events, load saved state ===== */
+// fill every input from localStorage, falling back to each game's defaults
+function loadState(){
+  GAMES.forEach(g=>{
+    const p = g.id; let s = {};
+    try{ s = JSON.parse(localStorage.getItem("gacha-"+p)||"{}"); }catch{}
+    if(!s || typeof s !== "object") s = {};
+    FIELDS.forEach(([key])=>{ setNum(`${p}-${key}`, s[key] ?? g.defaults[key]); });
+    if(g.resinCap && g.regenMin){
+      setNum(`${p}-resin`, s.resin ?? g.defaults.resin);
+      setNum(`${p}-thresh`, s.thresh ?? g.defaults.thresh);
+      CHECKED[p] = s.checked || "";
+    }
+  });
+}
+
 function init(){
   $("games").innerHTML = GAMES.map(render).join("");
 
@@ -337,20 +404,19 @@ function init(){
   });
 
   GAMES.forEach(g=>{
-    const p=g.id; let s={}; try{ s=JSON.parse(localStorage.getItem("gacha-"+p)||"{}"); }catch{}
-    setNum(`${p}-gems`, s.gems??g.defaults.gems);
-    setNum(`${p}-rolls`, s.rolls??g.defaults.rolls);
-    setNum(`${p}-glitter`, s.glitter??g.defaults.glitter);
-    setNum(`${p}-pity`, s.pity??g.defaults.pity);
-    setNum(`${p}-target`, s.target??g.defaults.target);
-    if(g.resinCap && g.regenMin){
-      setNum(`${p}-resin`, s.resin??g.defaults.resin);
-      setNum(`${p}-thresh`, s.thresh??g.defaults.thresh);
-      CHECKED[p] = s.checked || "";
-      $(`${p}-resin`).addEventListener("input", ()=>{ CHECKED[p]=nowLocal(); });
-    }
+    if(g.resinCap && g.regenMin) $(`${g.id}-resin`).addEventListener("input", ()=>{ CHECKED[g.id]=nowLocal(); });
   });
 
+  // export / import the saved state as a .json file
+  $("exportBtn").addEventListener("click", ()=>{ setStatus(`Exported all ${GAMES.length} games to ${exportData()}.`, "ok"); });
+  $("importBtn").addEventListener("click", ()=>$("importFile").click());
+  $("importFile").addEventListener("change", e=>{
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";   // clear so re-picking the same file fires again
+    if(file) importBackupFile(file);
+  });
+
+  loadState();
   calcAll(); setInterval(calcAll,30000);
 }
 if(typeof document !== "undefined") init();   // undefined in node, so tests can load the math
