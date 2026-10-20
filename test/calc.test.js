@@ -9,10 +9,13 @@ const path = require("path");
 const assert = require("assert");
 
 const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-const m = html.match(/<script>([\s\S]*?)<\/script>/);
-if(!m) throw new Error("no inline <script> found in index.html");
+/* index.html has two inline scripts: the pre-paint theme bootstrap in <head>
+   and the app script at the end of <body>. Take the app one (it holds GAMES). */
+const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+const app_src = scripts.find(s => s.includes("const GAMES"));
+if(!app_src) throw new Error("no app <script> found in index.html");
 
-const app = new Function(`${m[1]}
+const app = new Function(`${app_src}
 ;return { GAMES, FIELDS, computePulls, computeResin, fmtDur, fmtStamp };`)();
 
 let pass = 0, fail = 0;
