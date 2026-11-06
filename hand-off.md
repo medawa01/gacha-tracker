@@ -16,7 +16,7 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 
 - `index.html` — all CSS + JS inline. Renders one card per game from the `GAMES` array.
 - All the math lives in `computePulls` / `computeResin` (DOM-free); `calc()` only reads the DOM, calls them, writes the DOM, then persists. Don't put math back into `calc()`.
-- `test/calc.test.js` — `node test/calc.test.js` (40 assertions, no deps).
+- `test/calc.test.js` — `node test/calc.test.js` (48 assertions, no deps).
 - `assets/*.jpg` — 1200x400 header art, slug = lowercase id (`stella-sora.jpg`).
 - Each card: header banner (game name + ⓘ infotip), result block (deficit / need / progress bar / eff. rolls), five stepper rows (Currency, Rolls, Tokens, Pity, Target — derived pull counts under each label), collapsible Resin timer (last value + timestamp → current / full-in / full-at / X-in).
 - Only per-game config changes: `gemPerPull, glitterPerPull, targetMult, deficitPerPull, resinCap, regenMin`.
@@ -63,6 +63,7 @@ Visual spec: `G:\Downloads\OpenCode\NTE Pull Calculator Card – Redesign Spec.m
 
 Optional mirror of the ten `gacha-<ID>` values. Nothing changes for a visitor who never connects: no extra network requests, no libraries loaded.
 
+- **Status (as of 2026-11-06):** the code is complete on branch `feature/add-google-drive-persistence` (commit `fc49d1e`), the node suite is green and the `planSync` table is unit-tested — but it is **not merged to `main`**, so the live site does not have it. The one blocker is `GOOGLE_CLIENT_ID`, still `""` at the top of the cloud section: the Console setup below has never been done, so clicking the cloud currently only prints "Cloud sync is not configured". No real Drive round-trip has been run yet; verification needs `http://localhost:8080` (or the Pages origin), never `file://`.
 - **Storage:** `drivestore@0.2.1` (`https://cdn.jsdelivr.net/npm/drivestore@0.2.1/+esm`, pinned) writes `gacha-tracker.json` inside `appDataFolder` (hidden app-private space; scope `drive.appdata` only — the app can't see any other Drive file). File shape: `{ "v":1, "updatedAt":"<ISO>", "games": <same object as Export JSON> }`. The Export/Import JSON format is unchanged and has no envelope.
 - **Auth:** Google Identity Services token client (`https://accounts.google.com/gsi/client`), implicit/token flow — no secret, no backend. drivestore takes an `accessToken` callback; `getToken()` returns the cached token or asks Google again (`prompt:"none"` during auto-sync, interactive only on a click). Tokens last ~1h and there's no refresh token, so after that a silent re-request must succeed or the button turns coral ("sign in again").
 - **Setup (one-time, needed before the button works):**
@@ -73,20 +74,20 @@ Optional mirror of the ten `gacha-<ID>` values. Nothing changes for a visitor wh
 - **Sync model:** `localStorage` stays the source of truth. `calc()` stamps `modified` (in `gacha-sync` = `{linked, modified, synced}`) only when a game's stored JSON really changed (the first write of defaults and the 30s timer don't count). Edits push after a 3s debounce; the app also syncs on start and when the tab becomes visible (>60s since last). `planSync()` (pure, in the pure-math section) decides: no remote → push; identical → settle stamps; remote older/equal → push; remote newer → pull, unless this device has unsynced edits or was never linked, then one `confirm()` (OK = take Drive, Cancel = overwrite Drive with this device). Last-write-wins uses device clocks.
 - **Button states** (`#syncBtn[data-state]`): `off` (dim) → click connects; `on` (accent) → click opens Sync now / Disconnect; `busy` pulses; `err` (coral) → click retries interactively. Disconnect revokes the in-memory token (if any), sets `linked:false`, keeps local values and leaves the Drive copy untouched.
 - **Not synced:** the theme (`gacha-theme`) stays per device.
-- **Gotchas:** the GIS popup needs a user gesture, so the libraries are warmed on button hover/focus; a silent re-auth after reload can be blocked by the browser — the user just clicks the cloud. Edits made in the last 3s before closing the tab may not be pushed (next start reconciles). Tests: `planSync` and the sync flow were exercised with a vm harness + fake store (first link, cancel, silent pull, push, conflict, corrupt remote); worth folding the `planSync` table into `test/calc.test.js`.
+- **Gotchas:** the GIS popup needs a user gesture, so the libraries are warmed on button hover/focus; a silent re-auth after reload can be blocked by the browser — the user just clicks the cloud. Edits made in the last 3s before closing the tab may not be pushed (next start reconciles). Tests: the `planSync` decision table is in `test/calc.test.js` (8 cases: no remote, identical, Drive older/equal, never-linked, unsynced local edits, plain pull); the surrounding sync flow was exercised with a vm harness + fake store (first link, cancel, silent pull, push, conflict, corrupt remote).
 
 ## Anchors — grep these instead of reading the whole file
 
-`index.html` is ~545 lines / ~31KB, one file. Jump straight to a region rather than loading it all:
+`index.html` is ~790 lines / ~44KB, one file. Jump straight to a region rather than loading it all:
 
-- **CSS:** `/* --- tokens`, `--- page shell`, `--- tools`, `--- theme menu`, `--- card frame`, `--- header banner`, `--- card body`, `--- result block`, `--- input rows`, `--- resin panel`, `--- narrow cards`, `--- motion`
+- **CSS:** `/* --- tokens`, `--- page shell`, `--- tools`, `--- theme menu`, `--- cloud sync button states`, `--- card frame`, `--- header banner`, `--- card body`, `--- result block`, `--- input rows`, `--- resin panel`, `--- narrow cards`, `--- motion`
 - **JS:** `/* ===== data:`, `/* ===== pure math:`, `/* ===== helpers:`, `/* ===== view:`, `/* ===== update:`, `/* ===== backup:`, `/* ===== cloud:`, `/* ===== theme:`, `/* ===== startup:`
 - `loadState()` (startup section) is the single "storage → inputs" path: startup and import both call it, then `calcAll()`.
 - The **pure math** section is the seam: it has no DOM access, so it can be lifted out to its own file verbatim if the project ever grows a second page. `render()`/`calc()` are coupled by element ids (`<id>-defPulls`, `<id>-resin`, …) — keep any future split along the math/view line, not the render/calc line.
 
 ## Tests
 
-- `node test/calc.test.js` — pure-math suite (pull counts, deficit, goal/spare states, clamps, resin regen, formatters, config sanity). No browser, no DOM stubs, no dependencies. It evaluates the inline script that contains `const GAMES` — `index.html` has a second, pre-paint theme script in `<head>`, so the test must not just take the first `<script>`.
+- `node test/calc.test.js` — pure-math suite, 48 assertions (pull counts, deficit, goal/spare states, clamps, resin regen, the `planSync` sync-decision table, formatters, config sanity). No browser, no DOM stubs, no dependencies. It evaluates the inline script that contains `const GAMES` — `index.html` has a second, pre-paint theme script in `<head>`, so the test must not just take the first `<script>`. `planSync` is exported to the harness alongside `computePulls`/`computeResin`.
 - For layout/interaction changes still use the headless Edge check below; for math changes the node suite is enough.
 
 ## Workflow rules for this project
