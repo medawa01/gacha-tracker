@@ -450,7 +450,7 @@ async function importBackupFile(file){
    pulled on start and when the tab regains focus. Last-write-wins by timestamp, with one confirm
    when both sides changed. Sign-in = Google Identity Services, storage = drivestore. Both load
    lazily, so the page works offline and with no client id. The export/import JSON is untouched. */
-const GOOGLE_CLIENT_ID = "";   // OAuth "Web application" client id, e.g. "1234-abcd.apps.googleusercontent.com"
+const GOOGLE_CLIENT_ID = "399275589256-86h33rg3f2onusmq9llauog599nifqu5.apps.googleusercontent.com";   // OAuth "Web application" client id, e.g. "1234-abcd.apps.googleusercontent.com"
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const CLOUD_FILE = "gacha-tracker.json";
 const SYNC_KEY = "gacha-sync";   // { linked, modified, synced } — ms timestamps, local only
@@ -501,7 +501,12 @@ function ensureLibs(){
     if(!GOOGLE_CLIENT_ID) throw new Error("no-client-id");
     if(!(window.google && google.accounts && google.accounts.oauth2)) await loadScript(GIS_URL);
     const mod = await import(DRIVESTORE_URL);
-    cloud.store = mod.createDriveStore({ accessToken:getToken, rootName:"gacha-tracker" });
+    // drivestore@0.2.1 calls the fetch you pass in as a method of its own options object, so `this`
+    // is not the Window. Chrome ignores that, Firefox throws "'fetch' called on an object that does
+    // not implement interface Window" on every request. The arrow wrapper pins the receiver to
+    // window; it wraps reads and writes alike. Re-check on any drivestore bump.
+    cloud.store = mod.createDriveStore({ accessToken:getToken, rootName:"gacha-tracker",
+                                         fetch:(...a)=>window.fetch(...a) });
   })().catch(e=>{ cloud.libs = null; throw e; });
   return cloud.libs;
 }
@@ -596,7 +601,7 @@ async function syncNow(opts){
     else if(e.auth) msg = interactive ? "Google sign-in was cancelled or blocked." : "Google Drive needs you to sign in again — click the cloud button.";
     else if(e.message === "bad-remote") msg = "The file on Google Drive is not readable, so nothing was changed.";
     else if(e.status === 403 && /SERVICE_DISABLED|has not been used/i.test(body)) msg = "Enable the Google Drive API for this Google Cloud project.";
-    else if(e instanceof TypeError) msg = "Could not reach Google Drive (offline?).";
+    else if(e instanceof TypeError) msg = `Could not reach Google Drive (${e.message}).`;
     else msg = `Google Drive sync failed (${e.status || e.message}).`;
     setStatus(msg, "err");
   }finally{
