@@ -16,7 +16,7 @@ const app_src = scripts.find(s => s.includes("const GAMES"));
 if(!app_src) throw new Error("no app <script> found in index.html");
 
 const app = new Function(`${app_src}
-;return { GAMES, FIELDS, computePulls, computeResin, fmtDur, fmtStamp };`)();
+;return { GAMES, FIELDS, computePulls, computeResin, planSync, fmtDur, fmtStamp };`)();
 
 let pass = 0, fail = 0;
 function is(name, got, want){
@@ -73,6 +73,25 @@ is("resin clamps at cap", app.computeResin(wuwa, {resin:240, checked:"2026-10-17
 is("no stamp -> null", app.computeResin(wuwa, {}, t0), null);
 is("bad stamp -> null", app.computeResin(wuwa, {checked:"nope"}, t0), null);
 is("game without resin -> null", app.computeResin(game("Nikke"), {checked:"2026-10-17T10:00"}, t0), null);
+
+/* ---- sync planner: the whole decision table (Drive vs this device) ---- */
+const plan = c => app.planSync(c);
+is("sync: no remote file -> push",
+   plan({hasRemote:false, same:false, remoteT:0, localT:0, synced:0, linked:false}), "push");
+is("sync: identical data -> settle (even if Drive is newer)",
+   plan({hasRemote:true, same:true, remoteT:3000, localT:1000, synced:1000, linked:true}), "settle");
+is("sync: Drive older -> push",
+   plan({hasRemote:true, same:false, remoteT:1000, localT:2000, synced:1000, linked:true}), "push");
+is("sync: Drive equal -> push",
+   plan({hasRemote:true, same:false, remoteT:2000, localT:2000, synced:2000, linked:true}), "push");
+is("sync: Drive newer, never linked -> ask",
+   plan({hasRemote:true, same:false, remoteT:3000, localT:1000, synced:0, linked:false}), "ask");
+is("sync: Drive newer + unsynced local edits -> ask",
+   plan({hasRemote:true, same:false, remoteT:3000, localT:2500, synced:2000, linked:true}), "ask");
+is("sync: Drive newer, no local edits -> pull",
+   plan({hasRemote:true, same:false, remoteT:3000, localT:2000, synced:2000, linked:true}), "pull");
+is("sync: Drive newer, linked but never synced -> pull",
+   plan({hasRemote:true, same:false, remoteT:3000, localT:0, synced:0, linked:true}), "pull");
 
 /* ---- formatters ---- */
 is("fmtDur 0 -> full", app.fmtDur(0), "full");

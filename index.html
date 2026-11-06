@@ -75,6 +75,15 @@
   .swatch{width:12px;height:12px;border-radius:50%;flex:none;border:1px solid rgba(255,255,255,.25);}
   .theme-opt .check{margin-left:auto;color:var(--acc);font:600 12px/1 var(--display);}
 
+  /* --- cloud sync button states (the menu reuses the theme menu styles) --- */
+  .tool[data-state="on"]{opacity:1;color:var(--acc);}
+  .tool[data-state="busy"]{opacity:1;color:var(--acc);}
+  .tool[data-state="err"]{opacity:1;color:var(--warn);}
+  @media (prefers-reduced-motion:no-preference){
+    .tool[data-state="busy"]{animation:syncpulse 1s ease-in-out infinite;}
+    @keyframes syncpulse{50%{opacity:.35;}}
+  }
+
   /* --- card frame --- */
   .game{container-type:inline-size;background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
 
@@ -171,6 +180,15 @@
       </button>
       <div class="theme-menu" id="themeMenu" role="listbox" aria-label="Theme" hidden></div>
     </div>
+    <div class="theme-wrap">
+      <button type="button" class="tool" id="syncBtn" data-state="off" aria-label="Connect Google Drive" title="Connect Google Drive" aria-haspopup="menu" aria-expanded="false" aria-controls="syncMenu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+      </button>
+      <div class="theme-menu" id="syncMenu" role="menu" aria-label="Google Drive sync" hidden>
+        <button type="button" class="theme-opt" role="menuitem" data-act="sync">Sync now</button>
+        <button type="button" class="theme-opt" role="menuitem" data-act="disconnect">Disconnect</button>
+      </div>
+    </div>
     <button type="button" class="tool" id="exportBtn" aria-label="Export JSON" title="Export JSON">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
     </button>
@@ -240,6 +258,15 @@ function computeResin(g, v, now){
     fullH: (g.resinCap-cur)*g.regenMin/60,
     xH:    Math.max(0,(thresh-cur)*g.regenMin/60),
   };
+}
+
+/* sync planner: what to do when this device and Google Drive disagree.
+   Times are ms since epoch. "ask" = this device has edits Drive has not seen AND Drive is newer. */
+function planSync({hasRemote, same, remoteT, localT, synced, linked}){
+  if(!hasRemote) return "push";
+  if(same) return "settle";
+  if(remoteT <= localT) return "push";
+  return (!linked || localT > synced) ? "ask" : "pull";
 }
 
 /* ===== helpers: DOM lookups + number/date formatting ===== */
@@ -369,7 +396,11 @@ function calc(g){
   }
   const data={gems:rawOf(`${p}-gems`),rolls:rawOf(`${p}-rolls`),glitter:rawOf(`${p}-glitter`),pity:rawOf(`${p}-pity`),target:rawOf(`${p}-target`)};
   if(g.resinCap){ data.resin=rawOf(`${p}-resin`); data.checked=CHECKED[p]||""; data.thresh=rawOf(`${p}-thresh`); }
-  localStorage.setItem("gacha-"+p, JSON.stringify(data));
+  const json = JSON.stringify(data), prev = localStorage.getItem("gacha-"+p);
+  if(json !== prev){
+    localStorage.setItem("gacha-"+p, json);
+    if(prev !== null) markModified();   // first-ever write of defaults is not an edit
+  }
 }
 function calcAll(){ GAMES.forEach(calc); }
 const CHECKED = {};   // per-game "last checked" stamp (local "YYYY-MM-DDTHH:mm"), set only by editing Last resin
@@ -377,11 +408,15 @@ const CHECKED = {};   // per-game "last checked" stamp (local "YYYY-MM-DDTHH:mm"
 /* ===== backup: the persisted values as a .json file =====
    The file is exactly the stored shape — { "<game id>": { field: value } } — so a
    hand-edited or partial file imports fine. */
-function exportData(){
+function collect(){   // { "<game id>": {stored fields} } — also what the cloud file holds
   const out = {};
   GAMES.forEach(g=>{
     try{ out[g.id] = JSON.parse(localStorage.getItem("gacha-"+g.id)||"{}"); }catch{ out[g.id] = {}; }
   });
+  return out;
+}
+function exportData(){
+  const out = collect();
   const name = `gacha-tracker-${nowLocal().slice(0,10)}.json`;
   const url = URL.createObjectURL(new Blob([JSON.stringify(out,null,2)+"\n"],{type:"application/json"}));
   const a = document.createElement("a");
@@ -406,6 +441,219 @@ async function importBackupFile(file){
   if(!confirm(`Replace all saved values with "${file.name}"?`)) return setStatus("Import cancelled — nothing changed.", "");
   try{ importData(data); setStatus(`Imported "${file.name}".`, "ok"); }
   catch{ setStatus(`"${file.name}" is not a gacha-tracker backup.`, "err"); }
+}
+
+/* ===== cloud: optional Google Drive sync (appDataFolder) =====
+   One file, gacha-tracker.json, in this app's hidden Drive folder (scope drive.appdata: the app
+   cannot see any other Drive file, and the file does not show up in the user's Drive UI).
+   localStorage stays the source of truth for the page; Drive is a mirror: pushed ~3s after an edit,
+   pulled on start and when the tab regains focus. Last-write-wins by timestamp, with one confirm
+   when both sides changed. Sign-in = Google Identity Services, storage = drivestore. Both load
+   lazily, so the page works offline and with no client id. The export/import JSON is untouched. */
+const GOOGLE_CLIENT_ID = "399275589256-86h33rg3f2onusmq9llauog599nifqu5.apps.googleusercontent.com";   // OAuth "Web application" client id, e.g. "1234-abcd.apps.googleusercontent.com"
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const CLOUD_FILE = "gacha-tracker.json";
+const SYNC_KEY = "gacha-sync";   // { linked, modified, synced } — ms timestamps, local only
+const GIS_URL = "https://accounts.google.com/gsi/client";
+const DRIVESTORE_URL = "https://cdn.jsdelivr.net/npm/drivestore@0.2.1/+esm";
+const cloud = { libs:null, store:null, token:"", exp:0, tokenP:null, interactive:false,
+                busy:false, again:false, timer:0, applying:false, state:"off", last:0 };
+
+function syncMeta(){
+  try{ const m = JSON.parse(localStorage.getItem(SYNC_KEY)||"{}"); return (m && typeof m==="object") ? m : {}; }
+  catch{ return {}; }
+}
+function setSyncMeta(patch){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify({...syncMeta(), ...patch})); }catch{} }
+function markModified(){   // called by calc() when stored values really changed
+  if(cloud.applying) return;
+  setSyncMeta({modified:Date.now()});
+  scheduleSync();
+}
+function scheduleSync(){
+  if(cloud.applying || !syncMeta().linked) return;
+  clearTimeout(cloud.timer);
+  cloud.timer = setTimeout(()=>syncNow(), 3000);
+}
+function setCloudState(st){
+  cloud.state = st;
+  const btn = $("syncBtn"); if(!btn) return;
+  const label = {
+    off:  "Connect Google Drive",
+    on:   cloud.last ? `Google Drive sync — last synced ${fmtStamp(new Date(cloud.last))}` : "Google Drive sync — options",
+    busy: "Syncing with Google Drive…",
+    err:  "Google Drive: sync failed — click to retry",
+  }[st];
+  btn.dataset.state = st;
+  btn.setAttribute("aria-label", label);
+  btn.setAttribute("title", label);
+}
+
+function loadScript(src){
+  return new Promise((res, rej)=>{
+    const el = document.createElement("script");
+    el.src = src; el.async = true; el.onload = res;
+    el.onerror = ()=>rej(new Error("Could not load "+src));
+    document.head.appendChild(el);
+  });
+}
+function ensureLibs(){
+  if(!cloud.libs) cloud.libs = (async()=>{
+    if(!GOOGLE_CLIENT_ID) throw new Error("no-client-id");
+    if(!(window.google && google.accounts && google.accounts.oauth2)) await loadScript(GIS_URL);
+    const mod = await import(DRIVESTORE_URL);
+    // drivestore@0.2.1 calls the fetch you pass in as a method of its own options object, so `this`
+    // is not the Window. Chrome ignores that, Firefox throws "'fetch' called on an object that does
+    // not implement interface Window" on every request. The arrow wrapper pins the receiver to
+    // window; it wraps reads and writes alike. Re-check on any drivestore bump.
+    cloud.store = mod.createDriveStore({ accessToken:getToken, rootName:"gacha-tracker",
+                                         fetch:(...a)=>window.fetch(...a) });
+  })().catch(e=>{ cloud.libs = null; throw e; });
+  return cloud.libs;
+}
+// access tokens last ~1h and there is no refresh token in the browser flow, so renewal asks Google
+// again: silently (prompt "none") during auto-sync, with UI only when the user clicked something.
+function requestToken(silent){
+  return new Promise((resolve, reject)=>{
+    const fail = code=>{ const e = new Error(code); e.auth = true; reject(e); };
+    google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID, scope: DRIVE_SCOPE, prompt: silent ? "none" : "",
+      callback: r=>{
+        if(r.error) return fail(r.error);
+        if(!google.accounts.oauth2.hasGrantedAllScopes(r, DRIVE_SCOPE)) return fail("scope_denied");
+        cloud.token = r.access_token;
+        cloud.exp = Date.now() + (Number(r.expires_in)||3600)*1000 - 60000;
+        resolve(cloud.token);
+      },
+      error_callback: e=>fail((e && e.type) || "popup_failed"),
+    }).requestAccessToken();
+  });
+}
+function getToken(){
+  if(cloud.token && Date.now() < cloud.exp) return Promise.resolve(cloud.token);
+  if(!cloud.tokenP) cloud.tokenP = requestToken(!cloud.interactive).finally(()=>{ cloud.tokenP = null; });
+  return cloud.tokenP;
+}
+
+async function readRemote(){   // null when there is no file yet
+  let txt;
+  try{ txt = await cloud.store.read(CLOUD_FILE); }
+  catch(e){ if(e && e.status === 404) return null; throw e; }
+  let j; try{ j = JSON.parse(txt); }catch{ throw new Error("bad-remote"); }
+  if(!j || !j.games || typeof j.games !== "object" || Array.isArray(j.games)) throw new Error("bad-remote");
+  return j;
+}
+function sameGames(a, b){
+  return GAMES.every(g=>JSON.stringify((a && a[g.id])||{}) === JSON.stringify((b && b[g.id])||{}));
+}
+function applyRemote(games){   // only known game ids, same path as a file import
+  const pick = {};
+  GAMES.forEach(g=>{ if(games[g.id] && typeof games[g.id] === "object") pick[g.id] = games[g.id]; });
+  cloud.applying = true;
+  try{ importData(pick); } finally{ cloud.applying = false; }
+}
+async function pushRemote(local, t){
+  await cloud.store.write(CLOUD_FILE, JSON.stringify({ v:1, updatedAt:new Date(t).toISOString(), games:local }));
+}
+
+async function syncNow(opts){
+  const interactive = !!(opts && opts.interactive);
+  if(cloud.busy){ cloud.again = true; return; }
+  cloud.busy = true; cloud.interactive = interactive;
+  setCloudState("busy");
+  try{
+    await ensureLibs();
+    const remote = await readRemote();
+    const m = syncMeta(), local = collect(), localT = m.modified || 0;
+    const remoteT = remote ? (Date.parse(remote.updatedAt) || 0) : 0;
+    let plan = planSync({ hasRemote:!!remote, same:!!remote && sameGames(remote.games, local),
+                          remoteT, localT, synced:m.synced || 0, linked:!!m.linked });
+    let forced = false;
+    if(plan === "ask"){
+      const ok = confirm(`Google Drive already has saved values (${fmtStamp(new Date(remoteT))}).\n\n`
+        + `OK: load the Drive copy and replace the values on this device.\n`
+        + `Cancel: keep this device's values and overwrite the Drive copy.`);
+      plan = ok ? "pull" : "push"; forced = !ok;
+    }
+    if(plan === "pull"){
+      applyRemote(remote.games);
+      setSyncMeta({ linked:true, modified:remoteT, synced:remoteT });
+      setStatus("Loaded values from Google Drive.", "ok");
+    } else if(plan === "push"){
+      const t = forced ? Date.now() : (localT || Date.now());
+      await pushRemote(local, t);
+      setSyncMeta({ linked:true, modified:t, synced:t });
+      if(interactive) setStatus("Saved to Google Drive.", "ok");
+    } else {   // settle: identical data, just align the stamps
+      const t = remoteT || localT || Date.now();
+      setSyncMeta({ linked:true, modified:t, synced:t });
+      if(interactive) setStatus("Google Drive is up to date.", "ok");
+    }
+    cloud.last = Date.now();
+    setCloudState("on");
+  }catch(e){
+    console.error("[cloud sync]", e);
+    if(e && e.status === 401) cloud.exp = 0;
+    setCloudState(syncMeta().linked ? "err" : "off");
+    const body = String((e && e.body) || "");
+    let msg;
+    if(e.message === "no-client-id") msg = "Cloud sync is not configured — set GOOGLE_CLIENT_ID in index.html.";
+    else if(e.message === "scope_denied") msg = "Drive access was not granted — tick the permission box on Google's consent screen.";
+    else if(e.auth) msg = interactive ? "Google sign-in was cancelled or blocked." : "Google Drive needs you to sign in again — click the cloud button.";
+    else if(e.message === "bad-remote") msg = "The file on Google Drive is not readable, so nothing was changed.";
+    else if(e.status === 403 && /SERVICE_DISABLED|has not been used/i.test(body)) msg = "Enable the Google Drive API for this Google Cloud project.";
+    else if(e instanceof TypeError) msg = `Could not reach Google Drive (${e.message}).`;
+    else msg = `Google Drive sync failed (${e.status || e.message}).`;
+    setStatus(msg, "err");
+  }finally{
+    cloud.busy = false; cloud.interactive = false;
+    if(cloud.again){ cloud.again = false; scheduleSync(); }
+  }
+}
+function disconnect(){
+  clearTimeout(cloud.timer);
+  try{ if(cloud.token && window.google) google.accounts.oauth2.revoke(cloud.token, ()=>{}); }catch{}
+  cloud.token = ""; cloud.exp = 0; cloud.last = 0;
+  setSyncMeta({ linked:false, synced:0 });
+  setCloudState("off");
+  setStatus("Disconnected from Google Drive. Values stay on this device; the Drive copy is left as it was.", "");
+}
+function initCloud(){
+  const btn = $("syncBtn"), menu = $("syncMenu");
+  if(!btn || !menu) return;
+  const open = ()=>{ menu.hidden = false; btn.setAttribute("aria-expanded","true"); };
+  const close = refocus=>{ menu.hidden = true; btn.setAttribute("aria-expanded","false"); if(refocus) btn.focus(); };
+
+  // warm the libraries up before the click so Google's sign-in popup is not blocked by the load delay
+  const warm = ()=>{ if(GOOGLE_CLIENT_ID) ensureLibs().catch(()=>{}); };
+  btn.addEventListener("pointerenter", warm, {once:true});
+  btn.addEventListener("focus", warm, {once:true});
+
+  btn.addEventListener("click", e=>{
+    e.stopPropagation();
+    if(!GOOGLE_CLIENT_ID) return setStatus("Cloud sync is not configured — set GOOGLE_CLIENT_ID in index.html.", "err");
+    if(!syncMeta().linked || cloud.state === "off" || cloud.state === "err"){ close(false); syncNow({interactive:true}); return; }
+    menu.hidden ? open() : close(false);
+  });
+  menu.addEventListener("click", e=>{
+    const b = e.target.closest("[data-act]"); if(!b) return;
+    close(true);
+    if(b.dataset.act === "sync") syncNow({interactive:true}); else disconnect();
+  });
+  document.addEventListener("click", e=>{ if(!menu.hidden && !e.target.closest(".theme-wrap")) close(false); });
+  document.addEventListener("keydown", e=>{
+    if(menu.hidden) return;
+    const list = Array.from(menu.querySelectorAll("[data-act]")), cur = list.indexOf(document.activeElement);
+    if(e.key === "Escape"){ close(true); e.preventDefault(); }
+    else if(e.key === "ArrowDown" || e.key === "ArrowUp"){
+      e.preventDefault();
+      list[cur < 0 ? 0 : (e.key === "ArrowDown" ? (cur+1)%list.length : (cur-1+list.length)%list.length)].focus();
+    }
+    else if(e.key === "Tab"){ close(false); }
+  });
+  document.addEventListener("visibilitychange", ()=>{   // pick up edits made on another device
+    if(document.visibilityState === "visible" && syncMeta().linked && Date.now() - cloud.last > 60000) syncNow();
+  });
+  setCloudState(syncMeta().linked ? "on" : "off");
 }
 
 /* ===== theme: palette switch (layout is shared; only the CSS tokens change) =====
@@ -537,9 +785,11 @@ function init(){
   });
 
   initTheme();
+  initCloud();
 
   loadState();
   calcAll(); setInterval(calcAll,30000);
+  if(syncMeta().linked) syncNow();   // pull/push once on start (silent; no popup)
 }
 if(typeof document !== "undefined") init();   // undefined in node, so tests can load the math
 </script>
