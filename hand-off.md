@@ -21,7 +21,7 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 - Each card: header banner (game name + ⓘ infotip), result block (deficit / need / progress bar / eff. rolls), five stepper rows (Currency, Rolls, Tokens, Pity, Target — derived pull counts under each label), collapsible Resin timer (last value + timestamp → current / full-in / full-at / X-in).
 - Only per-game config changes: `gemPerPull, glitterPerPull, targetMult, deficitPerPull, resinCap, regenMin`.
 - State in `localStorage` key `gacha-<ID>`; timer recalculates every 30s. The chosen theme lives in its own key `gacha-theme` (`midnight` | `lime`) so the game data and the export/import JSON format stay untouched.
-- Header buttons (top-right, icon-only): **Theme** opens a dropdown to switch palette, **Export JSON** downloads `gacha-tracker-YYYY-MM-DD.json` = `{ "<ID>": {field:value} }` for all ten games — the stored shape verbatim, no envelope or version tag. **Import JSON** writes those keys back to `localStorage`, repaints inputs (`loadState()`) and recalculates. It confirms once, then overwrites only the keys the file names, so a hand-edited or partial file (`{"HSR":{"gems":"999"}}`) works. Status line under the buttons reports the result (accent = done, coral = refused).
+- Header buttons (top-right, icon-only): **Theme** opens a dropdown to switch palette, **Google Drive** (cloud icon, see Cloud sync) mirrors the data to the user's Drive, **Export JSON** downloads `gacha-tracker-YYYY-MM-DD.json` = `{ "<ID>": {field:value} }` for all ten games — the stored shape verbatim, no envelope or version tag. **Import JSON** writes those keys back to `localStorage`, repaints inputs (`loadState()`) and recalculates. It confirms once, then overwrites only the keys the file names, so a hand-edited or partial file (`{"HSR":{"gems":"999"}}`) works. Status line under the buttons reports the result (accent = done, coral = refused).
 
 ## Sheet → app values (verified against GI.xlsx computed values)
 
@@ -59,12 +59,28 @@ Visual spec: `G:\Downloads\OpenCode\NTE Pull Calculator Card – Redesign Spec.m
 - Result block: deficit = `need − pity − eff` (unchanged math); `pullsNeeded` shown in the caption is `target×mult − pity`; bar fill = `eff/pullsNeeded`. Goal-reached states: "pulls spare" (accent) / "goal reached" at 0 — this replaced the old "done ✓" wording.
 - Resin timestamps: "Last checked" and "Full at" are read-only computed values, formatted `dd/MM/yy HH:mm` by `fmtStamp()` (locale-independent on purpose). "Last checked" is set only by `CHECKED[p] = nowLocal()` when Last resin is edited — there is no date picker. Storage keeps the old `checked` shape (`YYYY-MM-DDTHH:mm`), so existing saves still load.
 
+## Cloud sync (Google Drive appDataFolder)
+
+Optional mirror of the ten `gacha-<ID>` values. Nothing changes for a visitor who never connects: no extra network requests, no libraries loaded.
+
+- **Storage:** `drivestore@0.2.1` (`https://cdn.jsdelivr.net/npm/drivestore@0.2.1/+esm`, pinned) writes `gacha-tracker.json` inside `appDataFolder` (hidden app-private space; scope `drive.appdata` only — the app can't see any other Drive file). File shape: `{ "v":1, "updatedAt":"<ISO>", "games": <same object as Export JSON> }`. The Export/Import JSON format is unchanged and has no envelope.
+- **Auth:** Google Identity Services token client (`https://accounts.google.com/gsi/client`), implicit/token flow — no secret, no backend. drivestore takes an `accessToken` callback; `getToken()` returns the cached token or asks Google again (`prompt:"none"` during auto-sync, interactive only on a click). Tokens last ~1h and there's no refresh token, so after that a silent re-request must succeed or the button turns coral ("sign in again").
+- **Setup (one-time, needed before the button works):**
+  1. Google Cloud Console → new project → *APIs & Services* → enable **Google Drive API**.
+  2. *OAuth consent screen*: External; add scope `.../auth/drive.appdata` (non-sensitive). Add yourself as a test user, or publish to Production (no verification needed for this scope).
+  3. *Credentials* → Create OAuth client ID → **Web application**. Authorized JavaScript origins: `https://medawa01.github.io` (and `http://localhost:8080` for local testing — `file://` will not work). No redirect URI.
+  4. Paste the client id into `GOOGLE_CLIENT_ID` at the top of the `cloud` section. A client id is public by design; it is fine in a public repo.
+- **Sync model:** `localStorage` stays the source of truth. `calc()` stamps `modified` (in `gacha-sync` = `{linked, modified, synced}`) only when a game's stored JSON really changed (the first write of defaults and the 30s timer don't count). Edits push after a 3s debounce; the app also syncs on start and when the tab becomes visible (>60s since last). `planSync()` (pure, in the pure-math section) decides: no remote → push; identical → settle stamps; remote older/equal → push; remote newer → pull, unless this device has unsynced edits or was never linked, then one `confirm()` (OK = take Drive, Cancel = overwrite Drive with this device). Last-write-wins uses device clocks.
+- **Button states** (`#syncBtn[data-state]`): `off` (dim) → click connects; `on` (accent) → click opens Sync now / Disconnect; `busy` pulses; `err` (coral) → click retries interactively. Disconnect revokes the in-memory token (if any), sets `linked:false`, keeps local values and leaves the Drive copy untouched.
+- **Not synced:** the theme (`gacha-theme`) stays per device.
+- **Gotchas:** the GIS popup needs a user gesture, so the libraries are warmed on button hover/focus; a silent re-auth after reload can be blocked by the browser — the user just clicks the cloud. Edits made in the last 3s before closing the tab may not be pushed (next start reconciles). Tests: `planSync` and the sync flow were exercised with a vm harness + fake store (first link, cancel, silent pull, push, conflict, corrupt remote); worth folding the `planSync` table into `test/calc.test.js`.
+
 ## Anchors — grep these instead of reading the whole file
 
 `index.html` is ~545 lines / ~31KB, one file. Jump straight to a region rather than loading it all:
 
 - **CSS:** `/* --- tokens`, `--- page shell`, `--- tools`, `--- theme menu`, `--- card frame`, `--- header banner`, `--- card body`, `--- result block`, `--- input rows`, `--- resin panel`, `--- narrow cards`, `--- motion`
-- **JS:** `/* ===== data:`, `/* ===== pure math:`, `/* ===== helpers:`, `/* ===== view:`, `/* ===== update:`, `/* ===== backup:`, `/* ===== theme:`, `/* ===== startup:`
+- **JS:** `/* ===== data:`, `/* ===== pure math:`, `/* ===== helpers:`, `/* ===== view:`, `/* ===== update:`, `/* ===== backup:`, `/* ===== cloud:`, `/* ===== theme:`, `/* ===== startup:`
 - `loadState()` (startup section) is the single "storage → inputs" path: startup and import both call it, then `calcAll()`.
 - The **pure math** section is the seam: it has no DOM access, so it can be lifted out to its own file verbatim if the project ever grows a second page. `render()`/`calc()` are coupled by element ids (`<id>-defPulls`, `<id>-resin`, …) — keep any future split along the math/view line, not the render/calc line.
 
