@@ -454,6 +454,7 @@ const GOOGLE_CLIENT_ID = "399275589256-86h33rg3f2onusmq9llauog599nifqu5.apps.goo
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const CLOUD_FILE = "gacha-tracker.json";
 const SYNC_KEY = "gacha-sync";   // { linked, modified, synced } — ms timestamps, local only
+const TOKEN_KEY = "gacha-sync-token";   // { t:<access token>, exp:<ms> } — shared by every tab of this origin
 const GIS_URL = "https://accounts.google.com/gsi/client";
 const DRIVESTORE_URL = "https://cdn.jsdelivr.net/npm/drivestore@0.2.1/+esm";
 const cloud = { libs:null, store:null, token:"", exp:0, tokenP:null, interactive:false,
@@ -505,10 +506,31 @@ function ensureLibs(){
     // is not the Window. Chrome ignores that, Firefox throws "'fetch' called on an object that does
     // not implement interface Window" on every request. The arrow wrapper pins the receiver to
     // window; it wraps reads and writes alike. Re-check on any drivestore bump.
+    // A 401 means the stored token is dead (expired early, revoked, or disconnected in another tab):
+    // drop it here so drivestore's own one-shot 401 retry calls getToken() and gets a fresh one.
     cloud.store = mod.createDriveStore({ accessToken:getToken, rootName:"gacha-tracker",
-                                         fetch:(...a)=>window.fetch(...a) });
+                                         fetch:async (...a)=>{ const r = await window.fetch(...a); if(r.status === 401) dropToken(); return r; } });
   })().catch(e=>{ cloud.libs = null; throw e; });
   return cloud.libs;
+}
+// The access token is kept in localStorage (key gacha-sync-token) so a reload or a second tab reuses it
+// instead of asking Google again. Trade-off: any script running on this origin can read it; it is
+// limited to the drive.appdata scope and lives ~1h. cloud.token/exp is only the fallback for when
+// localStorage is unavailable (private mode / blocked), where it behaves as before: per tab.
+function readToken(){
+  try{
+    const o = JSON.parse(localStorage.getItem(TOKEN_KEY) || "null");
+    if(o && o.t && Date.now() < o.exp) return o.t;
+  }catch{}
+  return (cloud.token && Date.now() < cloud.exp) ? cloud.token : "";
+}
+function storeToken(t, exp){
+  cloud.token = t; cloud.exp = exp;
+  try{ localStorage.setItem(TOKEN_KEY, JSON.stringify({t, exp})); }catch{}
+}
+function dropToken(){
+  cloud.token = ""; cloud.exp = 0;
+  try{ localStorage.removeItem(TOKEN_KEY); }catch{}
 }
 // access tokens last ~1h and there is no refresh token in the browser flow, so renewal asks Google
 // again: silently (prompt "none") during auto-sync, with UI only when the user clicked something.
@@ -520,16 +542,16 @@ function requestToken(silent){
       callback: r=>{
         if(r.error) return fail(r.error);
         if(!google.accounts.oauth2.hasGrantedAllScopes(r, DRIVE_SCOPE)) return fail("scope_denied");
-        cloud.token = r.access_token;
-        cloud.exp = Date.now() + (Number(r.expires_in)||3600)*1000 - 60000;
-        resolve(cloud.token);
+        storeToken(r.access_token, Date.now() + (Number(r.expires_in)||3600)*1000 - 60000);
+        resolve(r.access_token);
       },
       error_callback: e=>fail((e && e.type) || "popup_failed"),
     }).requestAccessToken();
   });
 }
 function getToken(){
-  if(cloud.token && Date.now() < cloud.exp) return Promise.resolve(cloud.token);
+  const t = readToken();   // read each time, so a token another tab just refreshed is picked up
+  if(t) return Promise.resolve(t);
   if(!cloud.tokenP) cloud.tokenP = requestToken(!cloud.interactive).finally(()=>{ cloud.tokenP = null; });
   return cloud.tokenP;
 }
@@ -592,7 +614,7 @@ async function syncNow(opts){
     setCloudState("on");
   }catch(e){
     console.error("[cloud sync]", e);
-    if(e && e.status === 401) cloud.exp = 0;
+    if(e && e.status === 401) dropToken();
     setCloudState(syncMeta().linked ? "err" : "off");
     const body = String((e && e.body) || "");
     let msg;
@@ -611,8 +633,13 @@ async function syncNow(opts){
 }
 function disconnect(){
   clearTimeout(cloud.timer);
-  try{ if(cloud.token && window.google) google.accounts.oauth2.revoke(cloud.token, ()=>{}); }catch{}
-  cloud.token = ""; cloud.exp = 0; cloud.last = 0;
+  const t = readToken();   // survives reloads now, so it can be revoked even in a fresh tab
+  try{
+    if(t && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(t, ()=>{});
+    else if(t) fetch("https://oauth2.googleapis.com/revoke", { method:"POST", mode:"no-cors",
+      headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:"token="+encodeURIComponent(t) }).catch(()=>{});
+  }catch{}
+  dropToken(); cloud.last = 0;
   setSyncMeta({ linked:false, synced:0 });
   setCloudState("off");
   setStatus("Disconnected from Google Drive. Values stay on this device; the Drive copy is left as it was.", "");
