@@ -25,7 +25,7 @@ jobs:
       - name: Stage site
         run: |
           mkdir -p _site
-          cp -r index.html assets _site/
+          cp -r index.html czn.html assets _site/
 
       - name: Upload site as artifact
         uses: actions/upload-pages-artifact@v5

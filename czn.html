@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#05060B">
+<title>CZN Rescue History · Gacha Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<script>
+/* theme: apply the stored theme before first paint so there is no flash */
+(function(){
+  try{
+    var t = localStorage.getItem("gacha-theme");
+    if(t === "lime" || t === "midnight") document.documentElement.dataset.theme = t;
+  }catch(e){}
+})();
+</script>
+<style>
+  /* --- tokens: shared structure, per-theme palette (matches index.html) ---
+     Attribute and luck-zone colours are data colours — identical in both themes. */
+  :root{
+    color-scheme:dark;
+    --page:#05060B; --card:#0D0F1B; --raised:#161828; --field:#0D0F1B; --track:#0D0F1B;
+    --border:#262A40; --border-control:#2A2F48; --divider:#23273D;
+    --txt:#ECEEF8; --soft:#C9CDE3; --muted:#9AA0BC;
+    --acc:#5CE1E6; --acc-done:#9BF0F3; --warn:#FF9A5C;
+    --hover:#1B1F33; --focus:#161A2C;
+    --ov1:rgba(13,15,27,.88); --ov2:rgba(13,15,27,.55); --ov-info:rgba(13,15,27,.6);
+    --display:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --r:8px; --r-sm:6px;
+    /* CZN attributes */
+    --attr-passion:#FF7A6B; --attr-void:#B18CFF; --attr-instinct:#7DE08A;
+    --attr-order:#6FB7FF; --attr-justice:#F2D16B;
+    /* pity luck zones (CZN: soft pity from 58, hard pity 70) */
+    --z-lucky:#8CE99A; --z-early:#9BF0F3; --z-soft:#FFD166; --z-deep:#FF9A5C;
+  }
+  html[data-theme="lime"]{
+    --page:#161313; --card:#1c1919; --raised:#232020; --field:#151212; --track:#0f0d0d;
+    --border:#2d2929; --border-control:#2d2929; --divider:#2d2929;
+    --txt:#f5f3f3; --soft:#cfc9c9; --muted:#a09a9a;
+    --acc:#76c442; --acc-done:#a8e063; --warn:#ff9a5c;
+    --hover:#262222; --focus:#201d1d;
+    --ov1:rgba(22,19,19,.88); --ov2:rgba(22,19,19,.55); --ov-info:rgba(22,19,19,.6);
+  }
+
+  /* --- page shell --- */
+  *{box-sizing:border-box;}
+  html{-webkit-tap-highlight-color:transparent;}
+  body{margin:0;background:var(--page);color:var(--txt);font:400 14px/1.4 var(--display);font-variant-numeric:tabular-nums;padding:16px max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left));max-width:1280px;margin-inline:auto;touch-action:manipulation;}
+  header{position:relative;}
+  h1{display:flex;align-items:center;gap:10px;font:600 15px/1.2 var(--display);margin:6px 0 14px;padding:0 140px 0 0;}
+  h1::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--acc);flex:none;}
+  .skip{position:absolute;left:-9999px;top:8px;z-index:50;padding:8px 12px;background:var(--raised);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--txt);font:600 12px var(--display);text-decoration:none;}
+  .skip:focus{left:16px;}
+  main{display:flex;flex-direction:column;gap:26px;scroll-margin-top:12px;}
+  .sect>h2{display:flex;align-items:center;gap:8px;font:600 13px/1.2 var(--display);letter-spacing:.08em;text-transform:uppercase;margin:0 0 12px;color:var(--txt);}
+  .sect>h2::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--acc);flex:none;}
+  .sect>h2 .count{margin-left:auto;font:400 10px/1 var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:none;}
+  .foot{color:var(--muted);font:400 11px/1.4 var(--mono);text-align:center;margin:14px 0 0;}
+  .foot a{color:var(--muted);}
+  .foot a:hover{color:var(--acc);}
+
+  /* --- tools: back link / theme (same language as index.html) --- */
+  .tools{position:absolute;top:0;right:0;z-index:5;display:flex;gap:8px;}
+  .tool{width:36px;height:36px;padding:0;display:grid;place-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--soft);cursor:pointer;opacity:.6;transition:opacity .15s ease,background .15s ease,color .15s ease;text-decoration:none;}
+  .tool:hover{opacity:1;background:var(--hover);color:var(--acc);}
+  .tool:active{background:var(--focus);}
+  .tool:focus-visible{opacity:1;outline:2px solid var(--acc);outline-offset:2px;}
+  .tool svg{width:18px;height:18px;display:block;}
+  .status{min-height:1.4em;margin:0 0 8px;font:400 11px/1.4 var(--mono);color:var(--muted);}
+  .theme-wrap{position:relative;}
+  .theme-menu{position:absolute;top:42px;right:0;z-index:20;min-width:168px;padding:4px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 14px 34px rgba(0,0,0,.6);}
+  .theme-menu[hidden]{display:none;}
+  .theme-opt{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;background:none;border:0;border-radius:var(--r-sm);color:var(--soft);font:600 12px/1.2 var(--display);text-align:left;cursor:pointer;}
+  .theme-opt:hover{background:var(--hover);color:var(--txt);}
+  .theme-opt:focus-visible{outline:2px solid var(--acc);outline-offset:-2px;}
+  .theme-opt[aria-selected="true"]{color:var(--txt);}
+  .swatch{width:12px;height:12px;border-radius:50%;flex:none;border:1px solid rgba(255,255,255,.25);}
+  .theme-opt .check{margin-left:auto;color:var(--acc);font:600 12px/1 var(--display);}
+
+  /* --- hero band (reuses the CZN card art) --- */
+  .hero{position:relative;height:120px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background-size:cover;background-position:center 35%;}
+  .hero::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--ov1),var(--ov2));}
+  .hero-inner{position:relative;height:100%;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:0 20px;}
+  .hero h2{margin:0;font:600 20px/1.1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--txt);text-shadow:0 1px 6px rgba(0,0,0,.7);}
+  .hero p{margin:0;font:400 12px/1.2 var(--mono);color:var(--soft);text-shadow:0 1px 4px rgba(0,0,0,.7);}
+  @media (max-width:560px){.hero{height:104px}.hero h2{font-size:15px}.hero p{font-size:11px}}
+
+  /* --- stat tiles --- */
+  .stats-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px 12px;display:flex;flex-direction:column;gap:5px;min-width:0;}
+  .stat b{font:600 28px/1 var(--display);letter-spacing:-.01em;color:var(--txt);}
+  .stat .lab{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:2px;}
+  .stat .sub{font:400 10px/1.35 var(--mono);color:var(--muted);}
+
+  /* --- charts --- */
+  .fig{margin:0;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 16px 12px;}
+  .fig svg{display:block;width:100%;height:auto;}
+  .fig figcaption{font:400 10px/1.6 var(--mono);color:var(--muted);padding:10px 2px 2px;}
+  .fig figcaption b{color:var(--soft);font-weight:600;}
+
+  /* --- rescue log --- */
+  .tl-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .tl-head h2{display:flex;align-items:center;gap:8px;font:600 13px/1.2 var(--display);letter-spacing:.08em;text-transform:uppercase;margin:0;color:var(--txt);}
+  .tl-head h2::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--acc);flex:none;}
+  .tl-head h2 .count{font:400 10px/1 var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:none;}
+  .seg{display:flex;background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;}
+  .seg button{appearance:none;background:none;border:0;padding:7px 12px;font:600 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);cursor:pointer;}
+  .seg button:hover{background:var(--hover);color:var(--txt);}
+  .seg button:focus-visible{outline:2px solid var(--acc);outline-offset:-2px;}
+  .seg button[aria-pressed="true"]{background:var(--raised);color:var(--acc);}
+  .seg button+button{border-left:1px solid var(--divider);}
+  .pulls{list-style:none;margin:0;padding:0;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));}
+  .pull{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;}
+  .pull-top{display:flex;align-items:center;gap:12px;}
+  .pull-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+  .pull-id h3{margin:0;font:600 15px/1.2 var(--display);color:var(--txt);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .meta{margin:0;font:400 10px/1.3 var(--mono);color:var(--muted);}
+  .pity{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none;}
+  .pity b{font:600 24px/1 var(--mono);color:var(--txt);}
+  .pity span{font:400 9px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+  .ava{width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:50%;border:2px solid var(--a);color:var(--a);background:color-mix(in srgb,var(--a) 16%,transparent);font:600 16px/1 var(--display);}
+  .ava.sm{width:34px;height:34px;font-size:14px;}
+  .pbar{position:relative;height:8px;border-radius:4px;background:linear-gradient(90deg,color-mix(in srgb,var(--z-lucky) 15%,transparent) 0 41%,color-mix(in srgb,var(--z-early) 15%,transparent) 41% 81%,color-mix(in srgb,var(--z-soft) 18%,transparent) 81% 100%);overflow:hidden;}
+  .pfill{position:absolute;left:0;top:0;bottom:0;border-radius:4px;}
+  .ptick{position:absolute;top:0;bottom:0;width:2px;left:82.857%;background:var(--txt);opacity:.45;}
+  .pull[data-zone="lucky"] .pfill{background:var(--z-lucky);}
+  .pull[data-zone="early"] .pfill{background:var(--z-early);}
+  .pull[data-zone="soft"] .pfill{background:var(--z-soft);}
+  .pull[data-zone="deep"] .pfill{background:var(--z-deep);}
+  .pull-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;font:400 10px/1 var(--mono);color:var(--muted);}
+  .zone-chip{font:600 9px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:4px;border:1px solid;}
+  .pull[data-zone="lucky"] .zone-chip{color:var(--z-lucky);border-color:color-mix(in srgb,var(--z-lucky) 45%,transparent);}
+  .pull[data-zone="early"] .zone-chip{color:var(--z-early);border-color:color-mix(in srgb,var(--z-early) 45%,transparent);}
+  .pull[data-zone="soft"] .zone-chip{color:var(--z-soft);border-color:color-mix(in srgb,var(--z-soft) 45%,transparent);}
+  .pull[data-zone="deep"] .zone-chip{color:var(--z-deep);border-color:color-mix(in srgb,var(--z-deep) 45%,transparent);}
+  .chip{font:600 9px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:4px;border:1px solid var(--border-control);color:var(--muted);}
+  .chip.ego{color:var(--z-soft);border-color:color-mix(in srgb,var(--z-soft) 45%,transparent);}
+  .chip.new{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 45%,transparent);}
+  .empty{grid-column:1/-1;background:var(--card);border:1px dashed var(--border-control);border-radius:var(--r);padding:22px;font:400 12px/1.5 var(--mono);color:var(--muted);text-align:center;}
+
+  /* --- roster --- */
+  .roster-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));}
+  .unit{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;gap:12px;min-width:0;}
+  .unit-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+  .unit-id h3{margin:0;font:600 14px/1.2 var(--display);color:var(--txt);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .unit-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none;}
+  .unit-right b{font:600 16px/1 var(--mono);color:var(--txt);}
+  .unit-right .cap{font:400 9px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);}
+  .unit-right .chips{display:flex;gap:4px;}
+
+  /* --- rates --- */
+  .rates{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:4px 16px;}
+  .rates dl{display:grid;grid-template-columns:max-content 1fr;gap:7px 18px;margin:0;padding:12px 0;}
+  .rates dt{font:600 10px/1.5 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+  .rates dd{margin:0;font:400 12px/1.5 var(--mono);color:var(--soft);}
+
+  @media (prefers-reduced-motion:reduce){
+    .tool{transition:none;}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header>
+  <h1>CZN Rescue History</h1>
+  <div class="tools">
+    <a class="tool" href="index.html" aria-label="Back to the gacha tracker" title="Back to the gacha tracker">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    </a>
+    <div class="theme-wrap">
+      <button type="button" class="tool" id="themeBtn" aria-label="Change theme" aria-haspopup="listbox" aria-expanded="false" aria-controls="themeMenu" title="Change theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <div class="theme-menu" id="themeMenu" role="listbox" aria-label="Theme" hidden></div>
+    </div>
+  </div>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+</header>
+
+<main id="main">
+  <section class="hero" style="background-image:url('assets/czn.jpg')" aria-label="Chaos Zero Nightmare">
+    <div class="hero-inner">
+      <h2 translate="no">Chaos Zero Nightmare</h2>
+      <p id="heroSub" translate="no">5★ rescue history</p>
+    </div>
+  </section>
+
+  <section class="sect" aria-labelledby="ovH">
+    <h2 id="ovH">Overview</h2>
+    <div class="stats-grid" id="stats"></div>
+  </section>
+
+  <section class="sect" aria-labelledby="histH">
+    <h2 id="histH">Pity Distribution</h2>
+    <figure class="fig" id="histFig"></figure>
+  </section>
+
+  <section class="sect" aria-labelledby="trendH">
+    <h2 id="trendH">Luck Over Time</h2>
+    <figure class="fig" id="trendFig"></figure>
+  </section>
+
+  <section class="sect" aria-labelledby="logH">
+    <div class="tl-head">
+      <h2 id="logH">Rescue Log <span class="count" id="logCount"></span></h2>
+      <div class="seg" role="group" aria-label="Log order">
+        <button type="button" id="ordNew" aria-pressed="true">Newest first</button>
+        <button type="button" id="ordOld" aria-pressed="false">Oldest first</button>
+      </div>
+    </div>
+    <ol class="pulls" id="pulls"></ol>
+  </section>
+
+  <section class="sect" aria-labelledby="rosH">
+    <h2 id="rosH">5★ Roster <span class="count" id="rosCount"></span></h2>
+    <div class="roster-grid" id="roster"></div>
+  </section>
+
+  <section class="sect" aria-labelledby="rateH">
+    <h2 id="rateH">Rescue Rates</h2>
+    <div class="rates">
+      <dl>
+        <dt>Rescue cost</dt><dd>160 crystals per Rescue Anchor</dd>
+        <dt>Base 5★ rate</dt><dd>1% · at least one 4★+ every 10 rescues</dd>
+        <dt>Soft pity</dt><dd>from pull 58, +4.5% per rescue</dd>
+        <dt>Hard pity</dt><dd>70 — a 5★ combatant is guaranteed</dd>
+        <dt>Featured</dt><dd>50/50 on the rate-up; a loss guarantees the next 5★</dd>
+        <dt>Duplicates</dt><dd>raise Manifest Ego (E1, E2, …) — stats and ability upgrades</dd>
+      </dl>
+    </div>
+  </section>
+</main>
+
+<p class="foot">data lives in this file — append new pulls to the <span translate="no">PULLS</span> array in czn.html · <a href="index.html">back to the tracker</a></p>
+
+<script>
+/* ===== data: the pull log — edit this, nothing else ================
+   PULLS is oldest → newest; append new pulls at the END of the array.
+   n = combatant name (must match a CHARS key for the class/attribute line)
+   p = pity counter when the 5★ dropped (0–70; the sum of all p is total rescues)
+   ego = optional label for duplicate pulls (e.g. Nine reaching Manifest Ego 1) */
+const COST_PER_PULL = 160, SOFT_PITY = 58, HARD_PITY = 70;
+const PULLS = [
+  { n:"Khalipe",     p:62 },
+  { n:"Yuki",        p:9  },
+  { n:"Hugo",        p:42 },
+  { n:"Sereniel",    p:55 },
+  { n:"Yuki",        p:29 },
+  { n:"Nine",        p:63 },
+  { n:"Tiphera",     p:69 },
+  { n:"Nine",        p:61, ego:"E1" },
+  { n:"Rita",        p:62 },
+  { n:"Diana",       p:61 },
+  { n:"Heidemarie",  p:20 },
+  { n:"Nine",        p:14, ego:"E3" },
+  { n:"Tenebria",    p:59 },
+  { n:"Yuki",        p:66 },
+  { n:"Fei",         p:69 },
+  { n:"Hilde",       p:17 },
+  { n:"Veronica",    p:63 },
+  { n:"Arabella",    p:58 },
+  { n:"Chizuru",     p:65 },
+  { n:"Olga",        p:56 },
+  { n:"Rossweisse",  p:61 },
+  { n:"Narja",       p:60 },
+  { n:"Blazebell",   p:52 },
+];
+
+/* class · attribute · faction per combatant (GameSaiyan roster, Nov 2026).
+   New characters not listed here simply show a “—” meta line. */
+const CHARS = {
+  Khalipe:    { cls:"Vanguard",  attr:"Instinct", fact:"Stella Familia" },
+  Yuki:       { cls:"Striker",   attr:"Order",    fact:"Terrascion" },
+  Hugo:       { cls:"Ranger",    attr:"Order",   fact:"Stella Familia" },
+  Sereniel:   { cls:"Hunter",    attr:"Instinct",fact:"Terrascion" },
+  Nine:       { cls:"Vanguard",  attr:"Order",   fact:"Wanderer" },
+  Tiphera:    { cls:"Controller",attr:"Order",   fact:"Wanderer" },
+  Rita:       { cls:"Psionic",   attr:"Justice", fact:"Wanderer" },
+  Diana:      { cls:"Hunter",    attr:"Passion", fact:"The Holy Crusaders" },
+  Heidemarie: { cls:"Ranger",    attr:"Passion", fact:"Terrascion" },
+  Tenebria:   { cls:"Psionic",   attr:"Passion", fact:"Terrascion" },
+  Fei:        { cls:"Ranger",    attr:"Void",    fact:"Wanderer" },
+  Hilde:      { cls:"Ranger",    attr:"Instinct",fact:"Ironrain" },
+  Veronica:   { cls:"Ranger",    attr:"Passion", fact:"Stella Familia" },
+  Arabella:   { cls:"Striker",   attr:"Instinct",fact:"Stella Familia" },
+  Chizuru:    { cls:"Psionic",   attr:"Void",    fact:"Peltion" },
+  Olga:       { cls:"Psionic",   attr:"Instinct",fact:"Wanderer" },
+  Rossweisse: { cls:"Striker",   attr:"Justice", fact:"Seasonal" },
+  Narja:      { cls:"Controller",attr:"Instinct",fact:"Peltion" },
+  Blazebell:  { cls:"Controller",attr:"Justice", fact:"Sileyma" },
+};
+
+/* attribute name → css var on the avatar */
+const ATTR_VAR = {
+  Passion:"var(--attr-passion)", Void:"var(--attr-void)", Instinct:"var(--attr-instinct)",
+  Order:"var(--attr-order)", Justice:"var(--attr-justice)",
+};
+
+/* ===== pure math: no DOM — analyse(PULLS) feeds every renderer ===== */
+function zoneOf(p){ return p<=29 ? "lucky" : p<=57 ? "early" : p<=64 ? "soft" : "deep"; }
+function analyse(pulls){
+  const n = pulls.length, rows = [], seen = {}; let cum = 0;
+  pulls.forEach((x,k)=>{
+    cum += x.p;
+    seen[x.n] = (seen[x.n]||0)+1;
+    rows.push({ name:x.n, pity:x.p, ego:x.ego||"", idx:k+1, occ:seen[x.n], cum, zone:zoneOf(x.p) });
+  });
+  const vals = pulls.map(x=>x.p).sort((a,b)=>a-b);
+  const total = cum;
+  const median = !n ? 0 : n%2 ? vals[(n-1)/2] : (vals[n/2-1]+vals[n/2])/2;
+  const avg = n ? total/n : 0;
+  const unique = Object.keys(seen).length;
+  const best = rows.slice().sort((a,b)=>a.pity-b.pity)[0] || null;
+  const worstVal = n ? vals[n-1] : 0;
+  const worst = rows.filter(r=>r.pity===worstVal);
+  const buckets = [];
+  for(let lo=0; lo<HARD_PITY; lo+=10){
+    const vs = vals.filter(v=>v>=lo && v<lo+10);
+    const zc = {}; vs.forEach(v=>{ const z=zoneOf(v); zc[z]=(zc[z]||0)+1; });
+    const zone = vs.length ? Object.keys(zc).sort((a,b)=>zc[b]-zc[a])[0] : zoneOf(lo+5);
+    buckets.push({ lo, c:vs.length, zone });
+  }
+  const rosterMap = {};
+  rows.forEach(r=>{
+    const m = rosterMap[r.name] = rosterMap[r.name] || { name:r.name, count:0, first:r.idx, pitSum:0, ego:"" };
+    m.count++; m.pitSum += r.pity; if(r.ego) m.ego = r.ego;
+  });
+  const roster = Object.values(rosterMap)
+    .map(m=>({ ...m, avg:m.pitSum/m.count }))
+    .sort((a,b)=> b.count-a.count || a.first-b.first);
+  return {
+    n, rows, total, avg, median, unique, best, worst, worstVal,
+    dupes: n-unique, saved: n*HARD_PITY-total, crystals: total*COST_PER_PULL,
+    inSoft: rows.filter(r=>r.pity>=SOFT_PITY).length,
+    hitCap: rows.filter(r=>r.pity>=HARD_PITY).length,
+    buckets, roster,
+  };
+}
+function rollingAvg(values, w){
+  const out = [];
+  for(let i=w-1; i<values.length; i++){
+    let s=0; for(let j=i-w+1; j<=i; j++) s += values[j];
+    out.push(s/w);
+  }
+  return out;
+}
+
+/* ===== helpers ===== */
+const $ = id => document.getElementById(id);
+const NFmt = new Intl.NumberFormat();
+const NFmt1 = new Intl.NumberFormat(undefined, { minimumFractionDigits:1, maximumFractionDigits:1 });
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function setStatus(msg, tone){
+  const el = $("status"); if(!el) return;
+  el.textContent = msg || ""; el.dataset.tone = tone || "";
+}
+function avaStyle(name){
+  const meta = CHARS[name] || {};
+  return `style="--a:${meta.attr && ATTR_VAR[meta.attr] ? ATTR_VAR[meta.attr] : "var(--muted)"}"`;
+}
+function metaLine(name){
+  const meta = CHARS[name] || {};
+  const bits = [meta.cls, meta.attr, meta.fact].filter(Boolean);
+  return bits.length ? bits.join(" · ") : "—";
+}
+
+/* ===== view: hero + stat tiles ===== */
+function renderHero(a){
+  const first = a.rows[0], last = a.rows[a.rows.length-1];
+  $("heroSub").textContent = !a.n ? "5★ rescue history"
+    : `5★ rescue history · ${first.name} → ${last.name} · ${NFmt.format(a.n)} pulls`;
+}
+function renderStats(a){
+  const worstNames = a.worst.slice(0,2).map(w=>w.name).join(" · ") + (a.worst.length>2 ? ` +${a.worst.length-2}` : "");
+  const tiles = [
+    [NFmt.format(a.n),        "5★ pulls",      `${NFmt.format(a.unique)} unique · ${NFmt.format(a.dupes)} dupes`],
+    [NFmt.format(a.total),   "rescues",        "total pulls spent"],
+    [NFmt.format(a.crystals),"crystals",       "at 160 per rescue"],
+    [NFmt1.format(a.avg),     "avg pity",       `mean of ${NFmt.format(a.n)} pulls`],
+    [NFmt.format(a.median),  "median pity",    "middle value"],
+    [a.best ? NFmt.format(a.best.pity) : "—", "luckiest", a.best ? `${a.best.name} · rescue #${NFmt.format(a.best.cum)}` : "—"],
+    [a.n ? NFmt.format(a.worstVal) : "—", "unluckiest", a.n ? worstNames : "—"],
+    [NFmt.format(a.saved),   "saved",          "pulls under the 70 cap"],
+  ];
+  $("stats").innerHTML = tiles.map(([num,lab,sub])=>`
+    <div class="stat">
+      <b>${num}</b>
+      <span class="lab">${esc(lab)}</span>
+      <span class="sub">${esc(sub)}</span>
+    </div>`).join("");
+}
+
+/* ===== view: charts (hand-built SVG, no dependencies) ===== */
+function svgHist(a){
+  const W=720, H=238, X0=44, X1=704, Y0=192, YT=24;
+  const span = X1-X0, maxC = Math.max(1, ...a.buckets.map(b=>b.c));
+  const scale = (Y0-YT)/maxC;
+  const px = p => X0 + p/HARD_PITY*span;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pity histogram: ${NFmt.format(a.n)} five-star pulls between ${a.n?a.best.pity:0} and ${a.n?a.worstVal:0} pity, most in the 60 to 69 range.">`;
+  a.buckets.forEach(b=>{
+    const bw = span/7, x = px(b.lo)+5, w = bw-10, cx = px(b.lo)+bw/2;
+    if(b.c>0){
+      const h = b.c*scale;
+      s += `<rect x="${x.toFixed(1)}" y="${(Y0-h).toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(h,2).toFixed(1)}" rx="2" style="fill:var(--z-${b.zone})"/>`;
+      s += `<text x="${cx.toFixed(1)}" y="${(Y0-h-7).toFixed(1)}" text-anchor="middle" style="font-family:var(--mono);font-size:11px;fill:var(--soft)">${b.c}</text>`;
+    } else {
+      s += `<text x="${cx.toFixed(1)}" y="${Y0-7}" text-anchor="middle" style="font-family:var(--mono);font-size:11px;fill:var(--muted)">0</text>`;
+    }
+    s += `<text x="${cx.toFixed(1)}" y="${Y0+16}" text-anchor="middle" style="font-family:var(--mono);font-size:10px;fill:var(--muted)">${b.lo}–${b.lo+9}</text>`;
+  });
+  s += `<line x1="${X0}" y1="${Y0}" x2="${X1}" y2="${Y0}" style="stroke:var(--divider)" stroke-width="1"/>`;
+  s += `<line x1="${px(SOFT_PITY).toFixed(1)}" y1="${YT}" x2="${px(SOFT_PITY).toFixed(1)}" y2="${Y0}" style="stroke:var(--muted)" stroke-width="1" stroke-dasharray="3 4" opacity=".7"/>`;
+  s += `<text x="${(px(SOFT_PITY)+6).toFixed(1)}" y="13" style="font-family:var(--mono);font-size:10px;fill:var(--muted)">soft pity 58</text>`;
+  s += `<text x="${X1}" y="13" text-anchor="end" style="font-family:var(--mono);font-size:10px;fill:var(--muted)">hard 70</text>`;
+  s += `</svg>`;
+  return s;
+}
+function svgTrend(a){
+  const W=720, H=238, X0=44, X1=704, Y0=192, YT=24;
+  const n = Math.max(a.n,1), span = X1-X0;
+  const x = i => X0 + (i-0.5)/n*span;
+  const y = p => Y0 - p/HARD_PITY*(Y0-YT);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Scatter plot of pity per five-star pull from first to latest, with a rolling four-pull average.">`;
+  [["lucky",0,29],["early",30,57],["soft",58,69]].forEach(([z,lo,hi])=>{
+    s += `<rect x="${X0}" y="${y(hi).toFixed(1)}" width="${span}" height="${(y(lo)-y(hi)).toFixed(1)}" style="fill:var(--z-${z})" opacity=".06"/>`;
+  });
+  for(let t=0; t<=70; t+=10){
+    s += `<line x1="${X0-4}" y1="${y(t).toFixed(1)}" x2="${X0}" y2="${y(t).toFixed(1)}" style="stroke:var(--divider)" stroke-width="1"/>`;
+    s += `<text x="${X0-8}" y="${(y(t)+3).toFixed(1)}" text-anchor="end" style="font-family:var(--mono);font-size:9px;fill:var(--muted)">${t}</text>`;
+  }
+  s += `<line x1="${X0}" y1="${Y0}" x2="${X1}" y2="${Y0}" style="stroke:var(--divider)" stroke-width="1"/>`;
+  s += `<line x1="${X0}" y1="${y(SOFT_PITY).toFixed(1)}" x2="${X1}" y2="${y(SOFT_PITY).toFixed(1)}" style="stroke:var(--muted)" stroke-width="1" stroke-dasharray="3 4" opacity=".7"/>`;
+  s += `<text x="${X1}" y="${(y(SOFT_PITY)-6).toFixed(1)}" text-anchor="end" style="font-family:var(--mono);font-size:10px;fill:var(--muted)">soft pity 58</text>`;
+  const ra = rollingAvg(a.rows.map(r=>r.pity), 4);
+  if(ra.length > 1){
+    s += `<polyline points="${ra.map((v,k)=>`${x(k+4).toFixed(1)},${y(v).toFixed(1)}`).join(" ")}" style="fill:none;stroke:var(--muted)" stroke-width="1.5" opacity=".85"/>`;
+  }
+  a.rows.forEach((r,k)=>{
+    s += `<circle cx="${x(r.idx).toFixed(1)}" cy="${y(r.pity).toFixed(1)}" r="5" style="fill:var(--z-${r.zone});stroke:var(--card)" stroke-width="2"/>`;
+  });
+  const xLabels = [1,5,10,15,20].filter(i=>i<n).concat(n>5 ? [n] : []);
+  [...new Set(xLabels)].forEach(i=>{
+    const last = i===n && n>5;
+    s += `<text x="${x(i).toFixed(1)}" y="${Y0+16}" text-anchor="middle" style="font-family:var(--mono);font-size:9px;fill:var(--muted)">${last ? "latest" : i}</text>`;
+  });
+  s += `</svg>`;
+  return s;
+}
+function renderCharts(a){
+  const pct = a.n ? Math.round(a.inSoft/a.n*100) : 0;
+  $("histFig").innerHTML = svgHist(a) + `
+    <figcaption><b>${NFmt.format(a.inSoft)} of ${NFmt.format(a.n)} pulls (${pct}%)</b> landed in soft pity at 58+; ${NFmt.format(a.n-a.inSoft)} came early. ${a.hitCap ? `${NFmt.format(a.hitCap)} hit the 70 cap.` : "The 70 cap was never hit."}
+    Zones: <span style="color:var(--z-lucky)">≤29 lucky</span> · <span style="color:var(--z-early)">30–57 early</span> · <span style="color:var(--z-soft)">58–64 soft pity</span> · <span style="color:var(--z-deep)">65+ deep</span>.</figcaption>`;
+  $("trendFig").innerHTML = svgTrend(a) + `
+    <figcaption>Pity per 5★ from first to latest; the grey line is a rolling 4-pull average. Dots are coloured by zone, avatar rings in the log below use attribute colours.</figcaption>`;
+}
+
+/* ===== view: rescue log ===== */
+let order = "new";
+try{ if(new URLSearchParams(location.search).get("order")==="old") order = "old"; }catch(e){}
+function renderPulls(a){
+  const list = $("pulls"); if(!list) return;
+  $("logCount").textContent = a.n ? `${NFmt.format(a.n)} pulls · ${NFmt.format(a.total)} rescues` : "";
+  if(order==="new") list.setAttribute("reversed",""); else list.removeAttribute("reversed");
+  const rows = order==="new" ? [...a.rows].reverse() : a.rows;
+  list.innerHTML = !a.n
+    ? `<li class="empty">No rescues logged yet — add entries to the PULLS array in czn.html.</li>`
+    : rows.map(r=>{
+        const chips = [];
+        if(r.ego) chips.push(`<span class="chip ego">${esc(r.ego)}</span>`);
+        else if(r.occ>1) chips.push(`<span class="chip">×${r.occ}</span>`);
+        if(r.idx===a.n) chips.push(`<span class="chip new">latest</span>`);
+        const zoneLabel = { lucky:"lucky", early:"early", soft:"soft pity", deep:"deep pity" }[r.zone];
+        return `<li class="pull" data-zone="${r.zone}">
+          <div class="pull-top">
+            <span class="ava" ${avaStyle(r.name)} aria-hidden="true">${esc(r.name.charAt(0).toUpperCase())}</span>
+            <div class="pull-id">
+              <h3 translate="no">${esc(r.name)}${chips.join("")}</h3>
+              <p class="meta">${esc(metaLine(r.name))}</p>
+            </div>
+            <div class="pity"><b>${NFmt.format(r.pity)}</b><span>pity</span></div>
+          </div>
+          <div class="pbar" aria-hidden="true"><span class="pfill" style="width:${(r.pity/HARD_PITY*100).toFixed(1)}%"></span><span class="ptick"></span></div>
+          <div class="pull-foot">
+            <span>rescue #${NFmt.format(r.cum)}</span>
+            <span class="zone-chip">${zoneLabel}</span>
+          </div>
+        </li>`;
+      }).join("");
+}
+function setOrder(o){
+  order = o;
+  $("ordNew").setAttribute("aria-pressed", String(o==="new"));
+  $("ordOld").setAttribute("aria-pressed", String(o==="old"));
+  renderPulls(A);
+  try{ history.replaceState(null, "", o==="old" ? "?order=old" : location.pathname); }catch(e){}
+}
+
+/* ===== view: roster ===== */
+function renderRoster(a){
+  $("rosCount").textContent = a.n ? `${NFmt.format(a.unique)} combatants` : "";
+  $("roster").innerHTML = !a.n
+    ? `<div class="empty">Nothing to show — no pulls logged.</div>`
+    : a.roster.map(m=>{
+        const chips = [];
+        if(m.count>1) chips.push(`<span class="chip">×${m.count}</span>`);
+        if(m.ego) chips.push(`<span class="chip ego">${esc(m.ego)}</span>`);
+        return `<div class="unit">
+          <span class="ava sm" ${avaStyle(m.name)} aria-hidden="true">${esc(m.name.charAt(0).toUpperCase())}</span>
+          <div class="unit-id">
+            <h3 translate="no">${esc(m.name)}${chips.join("")}</h3>
+            <p class="meta">${esc(metaLine(m.name))}</p>
+          </div>
+          <div class="unit-right"><b>${NFmt1.format(m.avg)}</b><span class="cap">avg pity</span></div>
+        </div>`;
+      }).join("");
+}
+
+/* ===== theme: palette switch (same key and behaviour as index.html) ===== */
+const THEMES = [
+  { id:"midnight", name:"Midnight", swatch:"#5CE1E6", page:"#05060B" },
+  { id:"lime",     name:"Lime",     swatch:"#76c442", page:"#161313" },
+];
+const THEME_KEY = "gacha-theme";
+function currentTheme(){
+  try{
+    const t = localStorage.getItem(THEME_KEY);
+    return THEMES.some(x=>x.id===t) ? t : "midnight";
+  }catch{ return "midnight"; }
+}
+function applyTheme(id, announce){
+  const th = THEMES.find(x=>x.id===id) || THEMES[0];
+  document.documentElement.dataset.theme = th.id;
+  try{ localStorage.setItem(THEME_KEY, th.id); }catch{}
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.content = th.page;
+  document.querySelectorAll(".theme-opt").forEach(b=>{
+    const on = b.dataset.theme === th.id;
+    b.setAttribute("aria-selected", on ? "true" : "false");
+    const chk = b.querySelector(".check");
+    if(chk) chk.textContent = on ? "✓" : "";
+  });
+  const btn = $("themeBtn");
+  if(btn){
+    btn.setAttribute("aria-label", `Theme: ${th.name} — change`);
+    btn.setAttribute("title", `Theme: ${th.name}`);
+  }
+  if(announce) setStatus(`Theme: ${th.name}.`);
+}
+function initTheme(){
+  const btn = $("themeBtn"), menu = $("themeMenu");
+  if(!btn || !menu) return;
+  menu.innerHTML = THEMES.map(t=>`
+      <button type="button" class="theme-opt" role="option" aria-selected="false" data-theme="${t.id}">
+        <span class="swatch" style="background:${t.swatch}"></span>
+        <span class="tname">${t.name}</span>
+        <span class="check"></span>
+      </button>`).join("");
+  const opts = () => Array.from(menu.querySelectorAll(".theme-opt"));
+  const isOpen = () => !menu.hidden;
+  const open = () => { menu.hidden = false; btn.setAttribute("aria-expanded","true"); };
+  const close = (refocus) => { menu.hidden = true; btn.setAttribute("aria-expanded","false"); if(refocus) btn.focus(); };
+
+  btn.addEventListener("click", e=>{ e.stopPropagation(); isOpen() ? close(false) : open(); });
+  menu.addEventListener("click", e=>{
+    const b = e.target.closest(".theme-opt");
+    if(!b) return;
+    applyTheme(b.dataset.theme, true);
+    close(false); btn.focus();
+  });
+  document.addEventListener("click", e=>{ if(isOpen() && !e.target.closest(".theme-wrap")) close(false); });
+  document.addEventListener("keydown", e=>{
+    if(!isOpen()) return;
+    const list = opts(), cur = list.indexOf(document.activeElement);
+    if(e.key === "Escape"){ close(true); e.preventDefault(); }
+    else if(e.key === "ArrowDown" || e.key === "ArrowUp"){
+      e.preventDefault();
+      const next = cur < 0 ? 0 : (e.key === "ArrowDown" ? (cur+1)%list.length : (cur-1+list.length)%list.length);
+      list[next].focus();
+    }
+    else if(e.key === "Home"){ e.preventDefault(); list[0].focus(); }
+    else if(e.key === "End"){ e.preventDefault(); list[list.length-1].focus(); }
+    else if(e.key === "Tab"){ close(false); }
+  });
+  applyTheme(currentTheme(), false);
+}
+
+/* ===== startup ===== */
+const A = analyse(PULLS);
+function init(){
+  renderHero(A);
+  renderStats(A);
+  renderCharts(A);
+  renderPulls(A);
+  renderRoster(A);
+  $("ordNew").setAttribute("aria-pressed", String(order==="new"));
+  $("ordOld").setAttribute("aria-pressed", String(order==="old"));
+  $("ordNew").addEventListener("click", ()=>setOrder("new"));
+  $("ordOld").addEventListener("click", ()=>setOrder("old"));
+  initTheme();
+}
+if(typeof document !== "undefined") init();   // undefined in node, so the math can be imported
+</script>
+</body>
+</html>

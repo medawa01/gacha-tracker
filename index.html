@@ -47,7 +47,7 @@
   html{-webkit-tap-highlight-color:transparent;}
   body{margin:0;background:var(--page);color:var(--txt);font:400 14px/1.4 var(--display);font-variant-numeric:tabular-nums;padding:16px max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));max-width:1800px;margin-inline:auto;touch-action:manipulation;}
   header{position:relative;}
-  h1{display:flex;align-items:center;gap:10px;font:600 15px/1.2 var(--display);margin:6px 0 14px;padding:0 140px 0 0;}
+  h1{display:flex;align-items:center;gap:10px;font:600 15px/1.2 var(--display);margin:6px 0 14px;padding:0 220px 0 0;}
   h1::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--acc);flex:none;}
   .foot{color:var(--muted);font:400 11px/1.4 var(--mono);text-align:center;margin:14px 0 0;}
   .games{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));align-items:start;}
@@ -55,7 +55,7 @@
 
   /* --- tools: theme / export / import --- */
   .tools{position:absolute;top:0;right:0;z-index:5;display:flex;gap:8px;}
-  .tool{width:36px;height:36px;padding:0;display:grid;place-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--soft);cursor:pointer;opacity:.6;transition:opacity .15s ease,background .15s ease,color .15s ease;}
+  .tool{width:36px;height:36px;padding:0;display:grid;place-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--soft);cursor:pointer;opacity:.6;transition:opacity .15s ease,background .15s ease,color .15s ease;text-decoration:none;}
   .tool:hover{opacity:1;background:var(--hover);color:var(--acc);}
   .tool:active{background:var(--focus);}
   .tool:focus-visible{opacity:1;outline:2px solid var(--acc);outline-offset:2px;}
@@ -174,6 +174,9 @@
 <header>
   <h1>Gacha Tracker</h1>
   <div class="tools">
+    <a class="tool" href="czn.html" aria-label="CZN rescue history" title="CZN rescue history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V10"/><path d="M12 20V4"/><path d="M19 20v-6"/></svg>
+    </a>
     <div class="theme-wrap">
       <button type="button" class="tool" id="themeBtn" aria-label="Change theme" aria-haspopup="listbox" aria-expanded="false" aria-controls="themeMenu" title="Change theme">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg>

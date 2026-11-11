@@ -15,13 +15,26 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 ## How it works
 
 - `index.html` — all CSS + JS inline. Renders one card per game from the `GAMES` array.
+- `czn.html` — the CZN 5★ rescue-history page (see "CZN rescue history" below).
 - All the math lives in `computePulls` / `computeResin` (DOM-free); `calc()` only reads the DOM, calls them, writes the DOM, then persists. Don't put math back into `calc()`.
 - `test/calc.test.js` — `node test/calc.test.js` (48 assertions, no deps).
-- `assets/*.jpg` — 1200x400 header art, slug = lowercase id (`stella-sora.jpg`).
+- `assets/*.jpg` — 1200x400 header art, slug = lowercase id (`stella-sora.jpg`). `czn.jpg` is reused as the hero band on `czn.html`.
 - Each card: header banner (game name + ⓘ infotip), result block (deficit / need / progress bar / eff. rolls), five stepper rows (Currency, Rolls, Tokens, Pity, Target — derived pull counts under each label), collapsible Resin timer (last value + timestamp → current / full-in / full-at / X-in).
 - Only per-game config changes: `gemPerPull, glitterPerPull, targetMult, deficitPerPull, resinCap, regenMin`.
-- State in `localStorage` key `gacha-<ID>`; timer recalculates every 30s. The chosen theme lives in its own key `gacha-theme` (`midnight` | `lime`) so the game data and the export/import JSON format stay untouched.
-- Header buttons (top-right, icon-only): **Theme** opens a dropdown to switch palette, **Google Drive** (cloud icon, see Cloud sync) mirrors the data to the user's Drive, **Export JSON** downloads `gacha-tracker-YYYY-MM-DD.json` = `{ "<ID>": {field:value} }` for all ten games — the stored shape verbatim, no envelope or version tag. **Import JSON** writes those keys back to `localStorage`, repaints inputs (`loadState()`) and recalculates. It confirms once, then overwrites only the keys the file names, so a hand-edited or partial file (`{"HSR":{"gems":"999"}}`) works. Status line under the buttons reports the result (accent = done, coral = refused).
+- State in `localStorage` key `gacha-<ID>`; timer recalculates every 30s. The chosen theme lives in its own key `gacha-theme` (`midnight` | `lime`) so the game data and the export/import JSON format stay untouched. `czn.html` reads the same `gacha-theme` key and the same token block, so both pages switch palettes together.
+- Header buttons (top-right, icon-only): **CZN history** (bar-chart icon) links to `czn.html`, **Theme** opens a dropdown to switch palette, **Google Drive** (cloud icon, see Cloud sync) mirrors the data to the user's Drive, **Export JSON** downloads `gacha-tracker-YYYY-MM-DD.json` = `{ "<ID>": {field:value} }` for all ten games — the stored shape verbatim, no envelope or version tag. **Import JSON** writes those keys back to `localStorage`, repaints inputs (`loadState()`) and recalculates. It confirms once, then overwrites only the keys the file names, so a hand-edited or partial file (`{"HSR":{"gems":"999"}}`) works. Status line under the buttons reports the result (accent = done, coral = refused).
+
+## CZN rescue history (`czn.html`)
+
+Static read-only view of the user's Chaos Zero Nightmare 5★ pulls — no localStorage, data lives in the file.
+
+- **Data:** `PULLS` array at the top of the script, **oldest → newest; append new pulls at the end**. Entry = `{ n:"Name", p:<pity when the 5★ dropped>, ego:"E1" (optional label for dupe pulls, i.e. reaching that Manifest Ego) }`. `CHARS` maps name → class/attribute/faction for the card meta line (GameSaiyan roster, Nov 2026); an unknown name just shows “—”. Attribute → colour via `ATTR_VAR` → the `--attr-*` tokens.
+- **Math:** `analyse(pulls)` is DOM-free (same seam as `computePulls`) and feeds every renderer — totals (sum of pity = total rescues), avg/median, best/worst, saved-vs-70, zone counts, 10-wide histogram buckets (bar colour = majority zone), roster aggregation (copies, avg pity, highest ego label). `zoneOf(p)`: ≤29 lucky, 30–57 early, 58–64 soft, 65+ deep (CZN: soft pity 58, hard pity 70).
+- **View:** hero band (reuses `assets/czn.jpg`), 8 stat tiles, two hand-built SVG charts (histogram + pity-per-pull scatter with rolling 4-average), the rescue log (grid of pull cards: attribute-coloured monogram avatar, pity bar with zone gradient + soft-pity tick at 58/70, rescue # = running cumulative), roster grid sorted copies-desc, and a rates `<dl>` (160 crystals, 1%, 4★+ every 10, 50/50, Manifest Ego).
+- **Order toggle:** Newest/Oldest segmented control; state lives in the URL (`?order=old`), applied via `history.replaceState`. Read on load.
+- **Theme:** pre-paint script + `initTheme()` copied from index.html (same `gacha-theme` key); no cloud sync on this page. Zone and attribute colours are data colours — identical in both themes.
+- **Deploy:** `deploy.yml` stages `index.html czn.html assets` — new top-level pages must be added to that `cp` line or they won't publish.
+- Index links here via the bar-chart tool button in the header (`.tool` got `text-decoration:none` for it; `h1` right padding widened 140→220px for the fifth button).
 
 ## Sheet → app values (verified against GI.xlsx computed values)
 
