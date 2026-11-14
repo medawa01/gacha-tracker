@@ -13,37 +13,15 @@
 (function(){
   try{
     var t = localStorage.getItem("gacha-theme");
-    if(t === "lime" || t === "midnight") document.documentElement.dataset.theme = t;
+    if(t === "lime" || t === "midnight" || t === "tactical-hud") document.documentElement.dataset.theme = t;
   }catch(e){}
 })();
 </script>
 <style>
-  /* --- tokens: shared structure, per-theme palette (matches index.html) ---
-     Attribute and luck-zone colours are data colours — identical in both themes. */
   :root{
-    color-scheme:dark;
-    --page:#05060B; --card:#0D0F1B; --raised:#161828; --field:#0D0F1B; --track:#0D0F1B;
-    --border:#262A40; --border-control:#2A2F48; --divider:#23273D;
-    --txt:#ECEEF8; --soft:#C9CDE3; --muted:#9AA0BC;
-    --acc:#5CE1E6; --acc-done:#9BF0F3; --warn:#FF9A5C;
-    --hover:#1B1F33; --focus:#161A2C;
-    --ov1:rgba(13,15,27,.88); --ov2:rgba(13,15,27,.55); --ov-info:rgba(13,15,27,.6);
-    --display:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
-    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
-    --r:8px; --r-sm:6px;
-    /* CZN attributes */
     --attr-passion:#FF7A6B; --attr-void:#B18CFF; --attr-instinct:#F2D16B;
     --attr-order:#7DE08A; --attr-justice:#6FB7FF;
-    /* pity luck zones (CZN: soft pity from 58, hard pity 70) */
     --z-lucky:#8CE99A; --z-early:#9BF0F3; --z-soft:#FFD166; --z-deep:#FF9A5C;
-  }
-  html[data-theme="lime"]{
-    --page:#161313; --card:#1c1919; --raised:#232020; --field:#151212; --track:#0f0d0d;
-    --border:#2d2929; --border-control:#2d2929; --divider:#2d2929;
-    --txt:#f5f3f3; --soft:#cfc9c9; --muted:#a09a9a;
-    --acc:#76c442; --acc-done:#a8e063; --warn:#ff9a5c;
-    --hover:#262222; --focus:#201d1d;
-    --ov1:rgba(22,19,19,.88); --ov2:rgba(22,19,19,.55); --ov-info:rgba(22,19,19,.6);
   }
 
   
@@ -54,7 +32,7 @@ body{margin:0;background:var(--page);color:var(--txt);font:400 14px/1.45 var(--d
 .skip{position:absolute;left:-9999px;top:8px;z-index:50;padding:8px 12px;background:var(--raised);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--txt);font:600 12px var(--display);text-decoration:none}
 .skip:focus{left:16px}
 /* top bar */
-.bar{position:sticky;top:0;z-index:10;background:var(--ov1);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--divider);padding-top:env(safe-area-inset-top,0px)}
+.bar{position:sticky;top:0;z-index:10;background:var(--page);border-bottom:1px solid var(--divider);padding-top:env(safe-area-inset-top,0px)}
 .bar-in{max-width:1160px;margin:0 auto;height:52px;display:flex;align-items:center;gap:12px;padding:0 max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left))}
 .bar h1{flex:1;margin:0;display:flex;align-items:center;gap:10px;font:600 14px/1 var(--display);letter-spacing:.02em}
 .bar h1::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 18%,transparent)}
@@ -166,6 +144,10 @@ td.zn{width:110px}
 @media (max-width:560px){.hero h2{font-size:20px}.hero-inner{padding:18px}.recent{padding:16px 10px}.wgrid{grid-template-columns:repeat(auto-fill,minmax(60px,1fr))}.wp,.wp .ava{width:54px;height:54px}td{padding:9px 6px}td.pt{width:90px}td.no{width:58px}td.zn{display:none}th.zn{display:none}}
 @media (prefers-reduced-motion:reduce){.tool{transition:none}}
 </style>
+<link rel="stylesheet" href="css/themes/midnight.css">
+<link rel="stylesheet" href="css/themes/lime.css">
+<link rel="stylesheet" href="css/themes/tactical-hud.css">
+
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -508,6 +490,7 @@ function renderRoster(a){
 const THEMES = [
   { id:"midnight", name:"Midnight", swatch:"#5CE1E6", page:"#05060B" },
   { id:"lime",     name:"Lime",     swatch:"#76c442", page:"#161313" },
+  { id:"tactical-hud", name:"Tactical (HUD)", swatch:"#35e6ff", page:"#050c13" },
 ];
 const THEME_KEY = "gacha-theme";
 function currentTheme(){

@@ -1,0 +1,12 @@
+:root, html[data-theme="midnight"] {
+  color-scheme:dark;
+  --page:#05060B; --card:#0D0F1B; --raised:#161828; --field:#0D0F1B; --track:#0D0F1B;
+  --border:#262A40; --border-control:#2A2F48; --divider:#23273D;
+  --txt:#ECEEF8; --soft:#C9CDE3; --muted:#9AA0BC;
+  --acc:#5CE1E6; --acc-done:#9BF0F3; --warn:#FF9A5C;
+  --hover:#1B1F33; --focus:#161A2C;
+  --ov1:rgba(13,15,27,.88); --ov2:rgba(13,15,27,.55); --ov-info:rgba(13,15,27,.6);
+  --display:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:8px; --r-sm:6px;
+}
