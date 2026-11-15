@@ -17,7 +17,7 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 - `index.html` — all CSS + JS inline. Renders one card per game from the `GAMES` array.
 - `czn.html` — the CZN 5★ rescue-history page (see "CZN rescue history" below).
 - All the math lives in `computePulls` / `computeResin` (DOM-free); `calc()` only reads the DOM, calls them, writes the DOM, then persists. Don't put math back into `calc()`.
-- `test/calc.test.js` — `node test/calc.test.js` (48 assertions, no deps).
+- `test/calc.test.js` — `node test/calc.test.js`; `test/czn.test.js` — `node test/czn.test.js` (no dependencies).
 - `assets/*.jpg` — 1200x400 header art, slug = lowercase id (`stella-sora.jpg`). `czn.jpg` is reused as the hero band on `czn.html`.
 - Each card: header banner (game name + ⓘ infotip), result block (deficit / need / progress bar / eff. rolls), five stepper rows (Currency, Rolls, Tokens, Pity, Target — derived pull counts under each label), collapsible Resin timer (last value + timestamp → current / full-in / full-at / X-in).
 - Only per-game config changes: `gemPerPull, glitterPerPull, targetMult, deficitPerPull, resinCap, regenMin`.
@@ -26,13 +26,15 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 
 ## CZN rescue history (`czn.html`)
 
-Static read-only view of the user's Chaos Zero Nightmare 5★ pulls — no localStorage, data lives in the file.
+View and manage the user's Chaos Zero Nightmare 5★ pull history. History lives in `localStorage` key `gacha-czn-pulls`.
 
-- **Data:** `PULLS` array at the top of the script, **oldest → newest; append new pulls at the end**. Entry = `{ n:"Name", p:<pity when the 5★ dropped>, ego:"E1" (optional label for dupe pulls, i.e. reaching that Manifest Ego) }`. `CHARS` maps name → class/attribute/faction for the card meta line (GameSaiyan roster, Nov 2026); an unknown name just shows “—”. Attribute → colour via `ATTR_VAR` → the `--attr-*` tokens.
+- **Migration:** on first visit, the built-in seed (currently empty) initializes `gacha-czn-pulls`. Invalid saved data falls back to that seed; an intentionally empty list remains empty. The original personal history is kept in the repo as `czn-rescue-history.txt` for import by its owner, not as another user's default.
+- **Entry shape/order:** oldest → newest. Entry = `{ n:"Name", p:<pity when the 5★ dropped>, ego:"E1" (optional label for dupe pulls) }`. Add appends; Remove always removes the chronologically latest entry, independent of log sort order. Undo restores removed entries in the same session only. `CHARS` maps name → class/attribute/faction for the card meta line; unknown names show “—”.
+- **Text import/export:** one entry per line as `Character <pullcount> | E1`; the ` | E1` suffix is optional. Blank lines and lines beginning `#` are ignored. Import validates the complete file before replacing the full history; an empty/comment-only file clears it.
 - **Math:** `analyse(pulls)` is DOM-free (same seam as `computePulls`) and feeds every renderer — totals (sum of pity = total rescues), avg/median, best/worst, saved-vs-70, zone counts, 10-wide histogram buckets (bar colour = majority zone), roster aggregation (copies, avg pity, highest ego label). `zoneOf(p)`: ≤29 lucky, 30–57 early, 58–64 soft, 65+ deep (CZN: soft pity 58, hard pity 70).
 - **View:** hero band (reuses `assets/czn.jpg`), 8 stat tiles, two hand-built SVG charts (histogram + pity-per-pull scatter with rolling 4-average), the rescue log (grid of pull cards: attribute-coloured monogram avatar, pity bar with zone gradient + soft-pity tick at 58/70, rescue # = running cumulative), roster grid sorted copies-desc, and a rates `<dl>` (160 crystals, 1%, 4★+ every 10, 50/50, Manifest Ego).
 - **Order toggle:** Newest/Oldest segmented control; state lives in the URL (`?order=old`), applied via `history.replaceState`. Read on load.
-- **Theme:** pre-paint script + `initTheme()` copied from index.html (same `gacha-theme` key); no cloud sync on this page. Zone and attribute colours are data colours — identical in both themes.
+- **Theme:** pre-paint script + `initTheme()` copied from index.html (same `gacha-theme` key). CZN history changes update the shared sync metadata so an open tracker tab schedules Drive sync; the next tracker-page load also reconciles changes. Zone and attribute colours are data colours — identical in all themes.
 - **Deploy:** `deploy.yml` stages `index.html czn.html assets` — new top-level pages must be added to that `cp` line or they won't publish.
 - Index links here via the bar-chart tool button in the header (`.tool` got `text-decoration:none` for it; `h1` right padding widened 140→220px for the fifth button).
 
@@ -74,10 +76,10 @@ Visual spec: `G:\Downloads\OpenCode\NTE Pull Calculator Card – Redesign Spec.m
 
 ## Cloud sync (Google Drive appDataFolder)
 
-Optional mirror of the ten `gacha-<ID>` values. Nothing changes for a visitor who never connects: no extra network requests, no libraries loaded.
+Optional mirror of the ten `gacha-<ID>` values and CZN rescue history. Nothing changes for a visitor who never connects: no extra network requests, no libraries loaded.
 
 - **Status (as of 2026-11-06):** live. Merged to `main` as `d12d510` and deployed to Pages; the `GOOGLE_CLIENT_ID` is set (public by design), and the flow was tested end-to-end on `http://localhost:8080` in Firefox — connect, background push, cross-browser pull (`ask` → OK), disconnect. Reminder: `localStorage` is per origin, so the pages origin still holds the real data while the localhost origin was a clean test slate.
-- **Storage:** `drivestore@0.2.1` (`https://cdn.jsdelivr.net/npm/drivestore@0.2.1/+esm`, pinned) writes `gacha-tracker.json` inside `appDataFolder` (hidden app-private space; scope `drive.appdata` only — the app can't see any other Drive file). File shape: `{ "v":1, "updatedAt":"<ISO>", "games": <same object as Export JSON> }`. The Export/Import JSON format is unchanged and has no envelope.
+- **Storage:** `drivestore@0.2.1` (`https://cdn.jsdelivr.net/npm/drivestore@0.2.1/+esm`, pinned) writes `gacha-tracker.json` inside `appDataFolder` (hidden app-private space; scope `drive.appdata` only — the app can't see any other Drive file). File shape: `{ "v":1, "updatedAt":"<ISO>", "games": <same object as Export JSON>, "czn": <oldest-to-newest rescue list> }`. `czn` is optional when reading older backups; a pull from an older backup preserves the local CZN history. The game Export/Import JSON format is unchanged and still contains only the game map.
 - **Auth:** Google Identity Services token client (`https://accounts.google.com/gsi/client`), implicit/token flow — no secret, no backend. drivestore takes an `accessToken` callback; `getToken()` returns the cached token or asks Google again (`prompt:"none"` during auto-sync, interactive only on a click). Tokens last ~1h and there's no refresh token, so after that a silent re-request must succeed or the button turns coral ("sign in again"). The token is cached in `localStorage` key `gacha-sync-token` = `{t, exp}` (exp = expiry minus 60s), so a reload or another tab reuses it with no Google round-trip; `getToken()` re-reads storage on every call, so a token another tab just refreshed is picked up. Trade-off: any script on the origin can read it (scope is `drive.appdata` only, ~1h life). A 401 from Drive drops the stored token inside the `fetch` wrapper in `ensureLibs()`, so drivestore's built-in single 401 retry gets a fresh one. If `localStorage` is unavailable it falls back to a per-tab in-memory token (`cloud.token/exp`). Disconnect revokes the stored token (works in a fresh tab too) and deletes the key.
 - **Setup (one-time, needed before the button works):**
   1. Google Cloud Console → new project → *APIs & Services* → enable **Google Drive API**.
@@ -100,7 +102,7 @@ Optional mirror of the ten `gacha-<ID>` values. Nothing changes for a visitor wh
 
 ## Tests
 
-- `node test/calc.test.js` — pure-math suite, 48 assertions (pull counts, deficit, goal/spare states, clamps, resin regen, the `planSync` sync-decision table, formatters, config sanity). No browser, no DOM stubs, no dependencies. It evaluates the inline script that contains `const GAMES` — `index.html` has a second, pre-paint theme script in `<head>`, so the test must not just take the first `<script>`. `planSync` is exported to the harness alongside `computePulls`/`computeResin`.
+- `node test/calc.test.js` — pure-math and cloud-shape checks (pull counts, deficit, clamps, resin regen, sync decisions, CZN validation/comparison, formatters, config sanity). `node test/czn.test.js` — CZN text parsing/formatting checks, including optional ego round-tripping and invalid entries. Both run in Node without browser/DOM stubs or dependencies. The tests extract the correct inline app script; `index.html` has a separate pre-paint theme script in `<head>`.
 - For layout/interaction changes still use the headless Edge check below; for math changes the node suite is enough.
 
 ## Workflow rules for this project

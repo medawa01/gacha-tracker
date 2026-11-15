@@ -16,7 +16,7 @@ const app_src = scripts.find(s => s.includes("const GAMES"));
 if(!app_src) throw new Error("no app <script> found in index.html");
 
 const app = new Function(`${app_src}
-;return { GAMES, FIELDS, computePulls, computeResin, planSync, fmtDur, fmtStamp };`)();
+;return { GAMES, FIELDS, computePulls, computeResin, planSync, validCznPulls, sameCloud, fmtDur, fmtStamp };`)();
 
 let pass = 0, fail = 0;
 function is(name, got, want){
@@ -92,6 +92,12 @@ is("sync: Drive newer, no local edits -> pull",
    plan({hasRemote:true, same:false, remoteT:3000, localT:2000, synced:2000, linked:true}), "pull");
 is("sync: Drive newer, linked but never synced -> pull",
    plan({hasRemote:true, same:false, remoteT:3000, localT:0, synced:0, linked:true}), "pull");
+is("CZN sync: valid rescue list accepted", app.validCznPulls([{n:"Mei Lin",p:70,ego:"E1"}]), true);
+is("CZN sync: invalid pity rejected", app.validCznPulls([{n:"Mei Lin",p:71}]), false);
+is("CZN sync: CZN-only difference detected",
+   app.sameCloud({games:{},czn:[{n:"Yuki",p:62}]},{games:{},czn:[]}), false);
+is("CZN sync: legacy backup without CZN remains compatible",
+   app.sameCloud({games:{},v:1},{games:{},czn:[{n:"Yuki",p:62}]}), true);
 
 /* ---- formatters ---- */
 is("fmtDur 0 -> full", app.fmtDur(0), "full");

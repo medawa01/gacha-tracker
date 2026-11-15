@@ -140,6 +140,18 @@ td.zn{width:110px}
 .fig{padding:12px 12px 8px}
 .foot{color:var(--muted);font:400 11px/1.5 var(--mono);text-align:center;margin:36px 0 0}
 .foot a{color:var(--muted)}.foot a:hover{color:var(--acc)}
+.history-tools{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.history-tools button,.history-dialog button{padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--soft);font:600 11px/1 var(--mono);cursor:pointer}
+.history-tools button:hover:not(:disabled),.history-dialog button:hover{background:var(--hover);color:var(--acc)}
+.history-tools button:focus-visible,.history-dialog button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.history-tools button:disabled{opacity:.4;cursor:default}
+.history-dialog{width:min(440px,calc(100% - 32px));padding:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--txt)}
+.history-dialog::backdrop{background:rgba(0,0,0,.72)}
+.history-dialog h2{margin:0 0 8px;font:600 15px/1.2 var(--display)}
+.history-dialog p{margin:0 0 12px;color:var(--muted);font:400 11px/1.5 var(--mono)}
+.history-dialog input{width:100%;height:40px;padding:0 10px;background:var(--field);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--txt);font:500 13px var(--mono)}
+.history-dialog input:focus{outline:2px solid var(--acc);outline-offset:1px}
+.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 @media (max-width:860px){.duo,.charts{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:560px){.hero h2{font-size:20px}.hero-inner{padding:18px}.recent{padding:16px 10px}.wgrid{grid-template-columns:repeat(auto-fill,minmax(60px,1fr))}.wp,.wp .ava{width:54px;height:54px}td{padding:9px 6px}td.pt{width:90px}td.no{width:58px}td.zn{display:none}th.zn{display:none}}
 @media (prefers-reduced-motion:reduce){.tool{transition:none}}
@@ -175,6 +187,11 @@ td.zn{width:110px}
   <section class="sect sect-c" aria-labelledby="logH">
     <h2 id="logH" style="margin:0;width:100%">Rescue log <span class="count" id="logCount"></span></h2>
     <div class="seg" role="group" aria-label="Log order"><button type="button" id="ordNew" aria-pressed="true">Newest first</button><button type="button" id="ordOld" aria-pressed="false">Oldest first</button></div>
+    <div class="history-tools" aria-label="Rescue history actions">
+      <button type="button" id="addPullBtn">Add</button><button type="button" id="removePullBtn">Remove latest</button><button type="button" id="undoPullBtn" disabled>Undo remove</button>
+      <button type="button" id="exportPullsBtn">Export list</button><button type="button" id="importPullsBtn">Import list</button>
+      <input type="file" id="pullsFile" accept="text/plain,.txt" aria-label="Choose a CZN rescue history text file" hidden>
+    </div>
     <div class="tbl-wrap"><table><thead><tr><th>Roll #</th><th style="text-align:left">Character</th><th>Pity</th><th class="zn">Luck</th></tr></thead><tbody id="pulls"></tbody></table></div>
   </section>
   <div class="duo">
@@ -194,40 +211,79 @@ td.zn{width:110px}
     <div class="charts"><figure class="fig" id="histFig"></figure><figure class="fig" id="trendFig"></figure></div>
   </section>
 </main>
-<p class="foot">data lives in this file — append new pulls to the <span translate="no">PULLS</span> array in czn.html · <a href="index.html">back to the tracker</a></p></div>
+<p class="foot">history autosaves in this browser · export a text copy for editing or backup · <a href="index.html">back to the tracker</a></p></div>
+<dialog class="history-dialog" id="addPullDialog" aria-labelledby="addPullTitle">
+  <form id="addPullForm">
+    <h2 id="addPullTitle">Add CZN rescue</h2><p>Enter <code>Character &lt;pullcount&gt;</code>; optionally add <code>| E1</code> for a Manifest Ego label.</p>
+    <input id="addPullInput" type="text" autocomplete="off" placeholder="Yuki 62 | E1" aria-label="Character, pull count, and optional ego" required>
+    <div class="dialog-actions"><button type="button" id="cancelAddPull">Cancel</button><button type="submit">Add rescue</button></div>
+  </form>
+</dialog>
 
 <script>
-/* ===== data: the pull log — edit this, nothing else ================
-   PULLS is oldest → newest; append new pulls at the END of the array.
+/* ===== data: default pull log; user history is stored locally ======
+   PULLS is oldest → newest; entries are appended at the END of the list.
    n = combatant name (must match a CHARS key for the class/attribute line)
    p = pity counter when the 5★ dropped (0–70; the sum of all p is total rescues)
    ego = optional label for duplicate pulls (e.g. Nine reaching Manifest Ego 1) */
 const COST_PER_PULL = 160, SOFT_PITY = 58, HARD_PITY = 70;
-const PULLS = [
-  { n:"Khalipe",     p:62 },
-  { n:"Yuki",        p:9  },
-  { n:"Hugo",        p:42 },
-  { n:"Sereniel",    p:55 },
-  { n:"Yuki",        p:29 },
-  { n:"Nine",        p:63 },
-  { n:"Tiphera",     p:69 },
-  { n:"Nine",        p:61, ego:"E1" },
-  { n:"Rita",        p:62 },
-  { n:"Diana",       p:61 },
-  { n:"Heidemarie",  p:20 },
-  { n:"Nine",        p:14, ego:"E3" },
-  { n:"Tenebria",    p:59 },
-  { n:"Yuki",        p:66 },
-  { n:"Fei",         p:69 },
-  { n:"Hilde",       p:17 },
-  { n:"Veronica",    p:63 },
-  { n:"Arabella",    p:58 },
-  { n:"Chizuru",     p:65 },
-  { n:"Olga",        p:56 },
-  { n:"Rossweisse",  p:61 },
-  { n:"Narja",       p:60 },
-  { n:"Blazebell",   p:52 },
-];
+const DEFAULT_PULLS = [];
+const CZN_KEY = "gacha-czn-pulls", SYNC_KEY = "gacha-sync";
+let PULLS = DEFAULT_PULLS.map(x=>({...x}));
+const removedPulls = [];   // session-only undo history; never persisted
+function validPulls(value){
+  return Array.isArray(value) && value.every(x=>x && typeof x==="object" && !Array.isArray(x)
+    && typeof x.n==="string" && x.n.trim()!=="" && Number.isInteger(x.p) && x.p>=0 && x.p<=HARD_PITY
+    && (x.ego==null || typeof x.ego==="string"));
+}
+function parsePullLine(line){
+  const m = String(line).trim().match(/^(.+?)\s+(\d+)(?:\s*\|\s*(E\d+))?$/i);
+  if(!m) throw new Error(`Invalid rescue entry: ${line}`);
+  const p = Number(m[2]);
+  if(!m[1].trim() || p>HARD_PITY) throw new Error(`Invalid rescue entry: ${line}`);
+  return { n:m[1].trim(), p, ...(m[3] ? {ego:m[3].toUpperCase()} : {}) };
+}
+function parsePullText(text){
+  const lines = String(text).split(/\r?\n/).map(x=>x.trim()).filter(x=>x && !x.startsWith("#"));
+  const pulls = lines.map(parsePullLine);
+  if(!validPulls(pulls)) throw new Error("Invalid rescue list");
+  return pulls;
+}
+function formatPullText(pulls){
+  return "# Character <pullcount> | E1 (optional)\n" + pulls.map(x=>`${x.n} ${x.p}${x.ego ? ` | ${x.ego}` : ""}`).join("\n") + "\n";
+}
+function loadPulls(){
+  try{
+    const saved = localStorage.getItem(CZN_KEY);
+    if(saved===null){ PULLS = DEFAULT_PULLS.map(x=>({...x})); savePulls(); }
+    else{
+      const parsed = JSON.parse(saved);
+      if(!validPulls(parsed)) throw new Error("Invalid saved CZN history");
+      PULLS = parsed.map(x=>({...x, n:x.n.trim()}));
+    }
+  }catch(e){
+    if(e instanceof SyntaxError || e.message==="Invalid saved CZN history"){
+      PULLS = DEFAULT_PULLS.map(x=>({...x}));
+      try{ savePulls(); }catch{}
+    }
+  }
+}
+function noteCznModified(){
+  try{
+    const m = JSON.parse(localStorage.getItem(SYNC_KEY)||"{}");
+    if(m && m.linked) localStorage.setItem(SYNC_KEY, JSON.stringify({...m, modified:Math.max(Date.now(),(Number(m.modified)||0)+1)}));
+  }catch{}
+}
+function savePulls(mark=true){
+  localStorage.setItem(CZN_KEY, JSON.stringify(PULLS));
+  if(mark) noteCznModified();
+}
+function renderAll(){
+  A = analyse(PULLS);
+  renderHero(A); renderStats(A); renderCharts(A); renderRecent(A); renderPulls(A); renderRoster(A);
+  $("removePullBtn").disabled = !PULLS.length;
+  $("undoPullBtn").disabled = !removedPulls.length;
+}
 
 /* class · attribute · faction per combatant (GameSaiyan roster, Nov 2026).
    New characters not listed here simply show a “—” meta line. */
@@ -444,7 +500,7 @@ function renderPulls(a){
   const rows = order==="new" ? [...a.rows].reverse() : a.rows;
   const zoneLabel = { lucky:"lucky", early:"early", soft:"soft pity", deep:"deep pity" };
   body.innerHTML = !a.n
-    ? `<tr><td colspan="4" class="empty">No rescues logged yet — add entries to the PULLS array in czn.html.</td></tr>`
+     ? `<tr><td colspan="4" class="empty">No rescues logged yet — use Add to record a rescue.</td></tr>`
     : rows.map(r=>{
         const chips = [];
         if(r.ego) chips.push(`<span class="chip ego">${esc(r.ego)}</span>`);
@@ -557,18 +613,65 @@ function initTheme(){
 }
 
 /* ===== startup ===== */
-const A = analyse(PULLS);
+let A = analyse(PULLS);
 function init(){
-  renderHero(A);
-  renderStats(A);
-  renderCharts(A);
-  renderRecent(A);
-  renderPulls(A);
-  renderRoster(A);
+  loadPulls();
+  renderAll();
   $("ordNew").setAttribute("aria-pressed", String(order==="new"));
   $("ordOld").setAttribute("aria-pressed", String(order==="old"));
   $("ordNew").addEventListener("click", ()=>setOrder("new"));
   $("ordOld").addEventListener("click", ()=>setOrder("old"));
+  const dialog = $("addPullDialog"), input = $("addPullInput");
+  $("addPullBtn").addEventListener("click", ()=>{ input.value=""; dialog.showModal(); input.focus(); });
+  $("cancelAddPull").addEventListener("click", ()=>dialog.close());
+  $("addPullForm").addEventListener("submit", e=>{
+    e.preventDefault();
+    let pull, appended=false;
+    try{
+      pull = parsePullLine(input.value);
+      PULLS.push(pull); appended=true; savePulls(); renderAll(); dialog.close();
+      setStatus(`Added ${pull.n} at ${pull.p} pity${pull.ego ? ` (${pull.ego})` : ""}.`, "ok");
+    }catch(err){ if(appended) PULLS.pop(); setStatus(err.message || "Could not save CZN history.", "err"); }
+  });
+  $("removePullBtn").addEventListener("click", ()=>{
+    if(!PULLS.length) return;
+    const index = PULLS.length-1, [pull] = PULLS.splice(index,1);
+    try{ savePulls(); removedPulls.push({pull,index}); renderAll(); setStatus(`Removed latest rescue: ${pull.n} (${pull.p}). Undo is available until this page closes.`, "ok"); }
+    catch{ PULLS.splice(index,0,pull); renderAll(); setStatus("Could not save CZN history; nothing was removed.", "err"); }
+  });
+  $("undoPullBtn").addEventListener("click", ()=>{
+    if(!removedPulls.length) return;
+    const item = removedPulls.pop(); PULLS.splice(Math.min(item.index,PULLS.length),0,item.pull);
+    try{ savePulls(); renderAll(); setStatus(`Restored ${item.pull.n} (${item.pull.p}).`, "ok"); }
+    catch{ PULLS.splice(PULLS.indexOf(item.pull),1); removedPulls.push(item); renderAll(); setStatus("Could not save CZN history; undo was not applied.", "err"); }
+  });
+  $("exportPullsBtn").addEventListener("click", ()=>{
+    const name = `czn-rescue-history-${new Date().toISOString().slice(0,10)}.txt`;
+    const url = URL.createObjectURL(new Blob([formatPullText(PULLS)],{type:"text/plain;charset=utf-8"}));
+    const a = document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000); setStatus(`Exported ${PULLS.length} rescues to ${name}.`, "ok");
+  });
+  $("importPullsBtn").addEventListener("click", ()=>$("pullsFile").click());
+  $("pullsFile").addEventListener("change", async e=>{
+    const file = e.target.files && e.target.files[0]; e.target.value="";
+    if(!file) return;
+    try{
+      const replacement = parsePullText(await file.text());
+      if(!confirm(`Replace the full CZN rescue history with ${replacement.length} entries from "${file.name}"?`)) return setStatus("Import cancelled — nothing changed.", "");
+      const previous = PULLS; PULLS = replacement;
+      try{ savePulls(); }catch(err){ PULLS=previous; throw err; }
+      removedPulls.length = 0;
+      renderAll(); setStatus(`Imported ${PULLS.length} rescues from "${file.name}".`, "ok");
+    }catch(err){ setStatus(err.message || "Could not read or save that rescue list.", "err"); }
+  });
+  window.addEventListener("storage", e=>{
+    if(e.key!==CZN_KEY || e.newValue===null) return;
+    try{
+      const next=JSON.parse(e.newValue);
+      if(!validPulls(next)) return;
+      PULLS=next; removedPulls.length=0; renderAll(); setStatus("CZN history updated in another tab.", "ok");
+    }catch{}
+  });
   initTheme();
 }
 if(typeof document !== "undefined") init();   // undefined in node, so the math can be imported

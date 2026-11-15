@@ -123,6 +123,11 @@ function planSync({hasRemote, same, remoteT, localT, synced, linked}){
   if(remoteT <= localT) return "push";
   return (!linked || localT > synced) ? "ask" : "pull";
 }
+function validCznPulls(value){
+  return Array.isArray(value) && value.every(x=>x && typeof x==="object" && !Array.isArray(x)
+    && typeof x.n==="string" && x.n.trim()!=="" && Number.isInteger(x.p) && x.p>=0 && x.p<=70
+    && (x.ego==null || typeof x.ego==="string"));
+}
 
 /* ===== helpers: DOM lookups + number/date formatting ===== */
 const $ = id => document.getElementById(id);
@@ -262,12 +267,17 @@ const CHECKED = {};   // per-game "last checked" stamp (local "YYYY-MM-DDTHH:mm"
 /* ===== backup: the persisted values as a .json file =====
    The file is exactly the stored shape — { "<game id>": { field: value } } — so a
    hand-edited or partial file imports fine. */
-function collect(){   // { "<game id>": {stored fields} } — also what the cloud file holds
+function collect(){   // { "<game id>": {stored fields} } — the game-only export/import shape
   const out = {};
   GAMES.forEach(g=>{
     try{ out[g.id] = JSON.parse(localStorage.getItem("gacha-"+g.id)||"{}"); }catch{ out[g.id] = {}; }
   });
   return out;
+}
+function collectCloud(){
+  let czn=[];
+  try{ const saved=JSON.parse(localStorage.getItem("gacha-czn-pulls")||"[]"); if(validCznPulls(saved)) czn=saved; }catch{}
+  return {games:collect(), czn};
 }
 function exportData(){
   const out = collect();
@@ -416,19 +426,27 @@ async function readRemote(){   // null when there is no file yet
   catch(e){ if(e && e.status === 404) return null; throw e; }
   let j; try{ j = JSON.parse(txt); }catch{ throw new Error("bad-remote"); }
   if(!j || !j.games || typeof j.games !== "object" || Array.isArray(j.games)) throw new Error("bad-remote");
+  if(j.czn!==undefined && !validCznPulls(j.czn)) throw new Error("bad-remote");
   return j;
 }
 function sameGames(a, b){
   return GAMES.every(g=>JSON.stringify((a && a[g.id])||{}) === JSON.stringify((b && b[g.id])||{}));
 }
-function applyRemote(games){   // only known game ids, same path as a file import
+function sameCloud(a,b){
+  return sameGames(a && a.games,b && b.games)
+    && (!(a && a.czn!==undefined) || JSON.stringify(a.czn) === JSON.stringify((b && b.czn)||[]));
+}
+function applyRemote(games, czn){   // only known game ids, same path as a file import
   const pick = {};
   GAMES.forEach(g=>{ if(games[g.id] && typeof games[g.id] === "object") pick[g.id] = games[g.id]; });
   cloud.applying = true;
-  try{ importData(pick); } finally{ cloud.applying = false; }
+  try{
+    importData(pick);
+    if(czn!==undefined && validCznPulls(czn)) localStorage.setItem("gacha-czn-pulls",JSON.stringify(czn));
+  } finally{ cloud.applying = false; }
 }
 async function pushRemote(local, t){
-  await cloud.store.write(CLOUD_FILE, JSON.stringify({ v:1, updatedAt:new Date(t).toISOString(), games:local }));
+  await cloud.store.write(CLOUD_FILE, JSON.stringify({ v:1, updatedAt:new Date(t).toISOString(), games:local.games, czn:local.czn }));
 }
 
 async function syncNow(opts){
@@ -439,9 +457,9 @@ async function syncNow(opts){
   try{
     await ensureLibs();
     const remote = await readRemote();
-    const m = syncMeta(), local = collect(), localT = m.modified || 0;
+    const m = syncMeta(), local = collectCloud(), localT = m.modified || 0;
     const remoteT = remote ? (Date.parse(remote.updatedAt) || 0) : 0;
-    let plan = planSync({ hasRemote:!!remote, same:!!remote && sameGames(remote.games, local),
+    let plan = planSync({ hasRemote:!!remote, same:!!remote && sameCloud(remote, local),
                           remoteT, localT, synced:m.synced || 0, linked:!!m.linked });
     let forced = false;
     if(plan === "ask"){
@@ -451,7 +469,8 @@ async function syncNow(opts){
       plan = ok ? "pull" : "push"; forced = !ok;
     }
     if(plan === "pull"){
-      applyRemote(remote.games);
+      applyRemote(remote.games, remote.czn);
+      if(remote.czn===undefined) await pushRemote(collectCloud(),remoteT);   // upgrade legacy backup, preserving local CZN history
       setSyncMeta({ linked:true, modified:remoteT, synced:remoteT });
       setStatus("Loaded values from Google Drive.", "ok");
     } else if(plan === "push"){
@@ -461,6 +480,7 @@ async function syncNow(opts){
       if(interactive) setStatus("Saved to Google Drive.", "ok");
     } else {   // settle: identical data, just align the stamps
       const t = remoteT || localT || Date.now();
+      if(remote && remote.czn===undefined) await pushRemote(local,t);   // add the new field to an older backup
       setSyncMeta({ linked:true, modified:t, synced:t });
       if(interactive) setStatus("Google Drive is up to date.", "ok");
     }
@@ -530,6 +550,9 @@ function initCloud(){
       list[cur < 0 ? 0 : (e.key === "ArrowDown" ? (cur+1)%list.length : (cur-1+list.length)%list.length)].focus();
     }
     else if(e.key === "Tab"){ close(false); }
+  });
+  window.addEventListener("storage", e=>{
+    if(e.key===SYNC_KEY && syncMeta().linked) scheduleSync();
   });
   document.addEventListener("visibilitychange", ()=>{   // pick up edits made on another device
     if(document.visibilityState === "visible" && syncMeta().linked && Date.now() - cloud.last > 60000) syncNow();
