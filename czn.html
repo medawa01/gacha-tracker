@@ -373,7 +373,7 @@ function setStatus(msg, tone){
   const el = $("status"); if(!el) return;
   el.textContent = msg || ""; el.dataset.tone = tone || "";
 }
-/* Portraits in assets/chars are named after each character. */
+/* Pre-resized 64px portraits in assets/chars avoid browser downsampling the originals. */
 const PORTRAIT_NAMES = new Set([
   "Amir", "Beryl", "Blazebell", "Cassius", "Chizuru", "Diana", "Fei", "Haru", "Heidemarie", "Hilde", "Hugo", "Kayron",
   "Khalipe", "Lucas", "Luke", "Magna", "Maribell", "Mei Lin", "Mika", "Narja",
@@ -382,7 +382,7 @@ const PORTRAIT_NAMES = new Set([
   "Arabella",
 ]);
 function ava(name, cls){
-  const url = PORTRAIT_NAMES.has(name) ? `assets/chars/${encodeURIComponent(name)}.png` : "";
+  const url = PORTRAIT_NAMES.has(name) ? `assets/chars/${encodeURIComponent(name)}_s.png` : "";
   return `<span class="ava ${cls||""}" ${avaStyle(name)} aria-hidden="true">${esc(name.charAt(0).toUpperCase())}${url ? `<img src="${esc(url)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</span>`;
 }
 function avaStyle(name){

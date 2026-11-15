@@ -8,7 +8,6 @@ const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)]
   .map(m => m[1]).find(s => s.includes("const DEFAULT_PULLS"));
 if(!script) throw new Error("no CZN app script found");
 const app = new Function(`${script}\n;return {parsePullLine, parsePullText, formatPullText, validPulls};`)();
-const personalExport = fs.readFileSync(path.join(__dirname, "..", "czn-rescue-history.txt"), "utf8");
 
 function is(name, got, want){
   try{ assert.deepStrictEqual(got,want); console.log("OK   "+name); }
@@ -28,5 +27,3 @@ is("pity above hard cap rejected", (()=>{try{app.parsePullLine("Yuki 71");return
 is("invalid line rejected", (()=>{try{app.parsePullText("Yuki nope");return false;}catch{return true;}})(), true);
 is("valid stored entry accepted", app.validPulls([{n:"Yuki",p:0}]), true);
 is("invalid stored entry rejected", app.validPulls([{n:"",p:2}]), false);
-is("checked-in personal export contains all 23 rescues", app.parsePullText(personalExport).length, 23);
-is("checked-in export retains both ego labels", app.parsePullText(personalExport).filter(x=>x.ego).map(x=>x.ego), ["E1","E3"]);

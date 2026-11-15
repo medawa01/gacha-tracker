@@ -18,7 +18,7 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 - `czn.html` — the CZN 5★ rescue-history page (see "CZN rescue history" below).
 - All the math lives in `computePulls` / `computeResin` (DOM-free); `calc()` only reads the DOM, calls them, writes the DOM, then persists. Don't put math back into `calc()`.
 - `test/calc.test.js` — `node test/calc.test.js`; `test/czn.test.js` — `node test/czn.test.js` (no dependencies).
-- `assets/*.jpg` — 1200x400 header art, slug = lowercase id (`stella-sora.jpg`). `czn.jpg` is reused as the hero band on `czn.html`.
+- `assets/*.jpg` — 1200x400 header art, slug = lowercase id (`stella-sora.jpg`). `czn.jpg` is reused as the hero band on `czn.html`. `assets/chars/*_s.png` are Lanczos-resized 64x64 transparent portraits used by the CZN pull log; keep the full-size originals alongside them.
 - Each card: header banner (game name + ⓘ infotip), result block (deficit / need / progress bar / eff. rolls), five stepper rows (Currency, Rolls, Tokens, Pity, Target — derived pull counts under each label), collapsible Resin timer (last value + timestamp → current / full-in / full-at / X-in).
 - Only per-game config changes: `gemPerPull, glitterPerPull, targetMult, deficitPerPull, resinCap, regenMin`.
 - State in `localStorage` key `gacha-<ID>`; timer recalculates every 30s. The chosen theme lives in its own key `gacha-theme` (`midnight` | `lime`) so the game data and the export/import JSON format stay untouched. `czn.html` reads the same `gacha-theme` key and the same token block, so both pages switch palettes together.
