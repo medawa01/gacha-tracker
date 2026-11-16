@@ -1,0 +1,11 @@
+window.HISTORY_CONFIG = {
+  costPerPull:160, softPity:58, hardPity:70, zoneCuts:{lucky:30,soft:58,deep:65},
+  storageKey:"gacha-czn-pulls", syncWithTracker:true, filePrefix:"czn-rescue-history",
+  labelField:"ego", labelPattern:"E\\d+", labelSample:"E1", labelName:"Manifest Ego", unitName:"rescue", unitPlural:"rescues", logTotalLabel:"rescues", currencyLabel:"crystals", itemLabel:"5★ pulls", totalLabel:"pulls spent", subtitle:"5★ rescue history",
+  zoneLegend:'Zones: <span style="color:var(--z-lucky)">≤29 lucky</span> · <span style="color:var(--z-early)">30–57 early</span> · <span style="color:var(--z-soft)">58–64 soft pity</span> · <span style="color:var(--z-deep)">65+ deep</span>.',
+  defaults:[],
+  portraits:name=>["Amir","Beryl","Blazebell","Cassius","Chizuru","Diana","Fei","Haru","Heidemarie","Hilde","Hugo","Kayron","Khalipe","Lucas","Luke","Magna","Maribell","Mei Lin","Mika","Narja","Nia","Nine","Nine-01","Olga","Owen","Orlea","Rei","Renoa","Rin","Rita","Rita-01","Rossweisse","Selena","Sereniel","Tenebria","Tiphera","Tressa","Veronica","Yuki","Arabella"].includes(name)?`assets/chars/${encodeURIComponent(name)}_s.png`:"",
+  chars:{
+    Khalipe:{cls:"Vanguard",attr:"Instinct",fact:"Stella Familia"},Yuki:{cls:"Striker",attr:"Order",fact:"Terrascion"},Hugo:{cls:"Ranger",attr:"Order",fact:"Stella Familia"},Sereniel:{cls:"Hunter",attr:"Instinct",fact:"Terrascion"},Nine:{cls:"Vanguard",attr:"Order",fact:"Wanderer"},Tiphera:{cls:"Controller",attr:"Order",fact:"Wanderer"},Rita:{cls:"Psionic",attr:"Justice",fact:"Wanderer"},Diana:{cls:"Hunter",attr:"Passion",fact:"The Holy Crusaders"},Heidemarie:{cls:"Ranger",attr:"Passion",fact:"Terrascion"},Tenebria:{cls:"Psionic",attr:"Passion",fact:"Terrascion"},Fei:{cls:"Ranger",attr:"Void",fact:"Wanderer"},Hilde:{cls:"Ranger",attr:"Instinct",fact:"Ironrain"},Veronica:{cls:"Ranger",attr:"Passion",fact:"Stella Familia"},Arabella:{cls:"Striker",attr:"Instinct",fact:"Stella Familia"},Chizuru:{cls:"Psionic",attr:"Void",fact:"Peltion"},Olga:{cls:"Psionic",attr:"Instinct",fact:"Wanderer"},Rossweisse:{cls:"Striker",attr:"Justice",fact:"Seasonal"},Narja:{cls:"Controller",attr:"Instinct",fact:"Peltion"},Blazebell:{cls:"Controller",attr:"Justice",fact:"Sileyma"}
+  }
+};

@@ -14,10 +14,10 @@ Personal static web app tracking gacha currencies across 10 games. Converted fro
 
 ## How it works
 
-- `index.html` — all CSS + JS inline. Renders one card per game from the `GAMES` array.
-- `czn.html` — the CZN 5★ rescue-history page (see "CZN rescue history" below).
+- `index.html` — CSS + JS inline. Renders one card per game from the `GAMES` array.
+- `czn.html` and `zzz.html` — CZN rescue and ZZZ S-Rank history pages. Both use `js/history-page.js` with separate game configs under `js/`.
 - All the math lives in `computePulls` / `computeResin` (DOM-free); `calc()` only reads the DOM, calls them, writes the DOM, then persists. Don't put math back into `calc()`.
-- `test/calc.test.js` — `node test/calc.test.js`; `test/czn.test.js` — `node test/czn.test.js` (no dependencies).
+- `test/calc.test.js` — `node test/calc.test.js`; `test/czn.test.js` and `test/zzz.test.js` test both history configs (no dependencies).
 - `assets/*.jpg` — 1200x400 header art, slug = lowercase id (`stella-sora.jpg`). `czn.jpg` is reused as the hero band on `czn.html`. `assets/chars/*_s.png` are Lanczos-resized 64x64 transparent portraits used by the CZN pull log; keep the full-size originals alongside them.
 - Each card: header banner (game name + ⓘ infotip), result block (deficit / need / progress bar / eff. rolls), five stepper rows (Currency, Rolls, Tokens, Pity, Target — derived pull counts under each label), collapsible Resin timer (last value + timestamp → current / full-in / full-at / X-in).
 - Only per-game config changes: `gemPerPull, glitterPerPull, targetMult, deficitPerPull, resinCap, regenMin`.
@@ -35,8 +35,14 @@ View and manage the user's Chaos Zero Nightmare 5★ pull history. History lives
 - **View:** hero band (reuses `assets/czn.jpg`), 8 stat tiles, two hand-built SVG charts (histogram + pity-per-pull scatter with rolling 4-average), the rescue log (grid of pull cards: attribute-coloured monogram avatar, pity bar with zone gradient + soft-pity tick at 58/70, rescue # = running cumulative), roster grid sorted copies-desc, and a rates `<dl>` (160 crystals, 1%, 4★+ every 10, 50/50, Manifest Ego).
 - **Order toggle:** Newest/Oldest segmented control; state lives in the URL (`?order=old`), applied via `history.replaceState`. Read on load.
 - **Theme:** pre-paint script + `initTheme()` copied from index.html (same `gacha-theme` key). CZN history changes update the shared sync metadata so an open tracker tab schedules Drive sync; the next tracker-page load also reconciles changes. Zone and attribute colours are data colours — identical in all themes.
-- **Deploy:** `deploy.yml` stages `index.html czn.html assets` — new top-level pages must be added to that `cp` line or they won't publish.
-- Index links here via the bar-chart tool button in the header (`.tool` got `text-decoration:none` for it; `h1` right padding widened 140→220px for the fifth button).
+- **Deploy:** `deploy.yml` stages `index.html czn.html zzz.html assets css js` — new pages and external scripts must be added to that `cp` line or they won't publish.
+- Index links to both history pages via bar-chart tool buttons in the header; both history pages link to each other and back to the tracker.
+
+## ZZZ S-Rank history (`zzz.html`)
+
+- Uses the shared view and import/export behavior, with separate config/storage (`gacha-zzz-pulls`) and no built-in sample data. The personal history file is intentionally not part of the repository; import it after publication.
+- Tracks Agent S-Rank pity only: 90 hard pity; soft pity is shown from 75 as a community estimate, not an official published threshold. W-Engine history is out of scope.
+- Entries support optional `| M1` Mindscape labels. ZZZ validation accepts pity up to 90. Automated tests use representative fixtures and do not read the personal history file.
 
 ## Sheet → app values (verified against GI.xlsx computed values)
 
