@@ -11,7 +11,7 @@
 
   /* --- tools: theme / export / import --- */
   .tools{position:absolute;top:0;right:0;z-index:5;display:flex;gap:8px;}
-  .tool{width:36px;height:36px;padding:0;display:grid;place-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--soft);cursor:pointer;opacity:.6;transition:opacity .15s ease,background .15s ease,color .15s ease;text-decoration:none;}
+  .tool{width:36px;height:36px;padding:0;display:grid;place-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--soft);cursor:pointer;opacity:.6;transition:opacity .22s cubic-bezier(.2,.7,.3,1),background-color .22s cubic-bezier(.2,.7,.3,1),color .22s cubic-bezier(.2,.7,.3,1),border-color .22s cubic-bezier(.2,.7,.3,1);text-decoration:none;}
   .tool:hover{opacity:1;background:var(--hover);color:var(--acc);}
   .tool:active{background:var(--focus);}
   .tool:focus-visible{opacity:1;outline:2px solid var(--acc);outline-offset:2px;}
@@ -24,7 +24,7 @@
   .theme-wrap{position:relative;}
   .theme-menu{position:absolute;top:42px;right:0;z-index:20;min-width:168px;padding:4px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 14px 34px rgba(0,0,0,.6);}
   .theme-menu[hidden]{display:none;}
-  .theme-opt{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;background:none;border:0;border-radius:var(--r-sm);color:var(--soft);font:600 12px/1.2 var(--display);text-align:left;cursor:pointer;}
+  .theme-opt{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;background:none;border:0;border-radius:var(--r-sm);color:var(--soft);font:600 12px/1.2 var(--display);text-align:left;cursor:pointer;transition:background-color .22s cubic-bezier(.2,.7,.3,1),color .22s cubic-bezier(.2,.7,.3,1);}
   .theme-opt:hover{background:var(--hover);color:var(--txt);}
   .theme-opt:focus-visible{outline:2px solid var(--acc);outline-offset:-2px;}
   .theme-opt[aria-selected="true"]{color:var(--txt);}
@@ -48,7 +48,7 @@
   .ghead::before{content:"";position:absolute;inset:0;background:none;}
   .ghead h2{position:relative;margin:0;padding:0 64px 0 18px;font:600 14px/1.1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--txt);text-shadow:0 1px 6px rgba(0,0,0,.7);}
   .info-wrap{position:absolute;top:10px;right:10px;}
-  .info{width:26px;height:26px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:var(--ov-info);color:var(--txt);font:600 13px/1 var(--display);cursor:pointer;padding:0;opacity:0;pointer-events:none;transition:opacity .15s ease;}
+  .info{width:26px;height:26px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:var(--ov-info);color:var(--txt);font:600 13px/1 var(--display);cursor:pointer;padding:0;opacity:0;pointer-events:none;transition:opacity .22s cubic-bezier(.2,.7,.3,1),color .22s cubic-bezier(.2,.7,.3,1),border-color .22s cubic-bezier(.2,.7,.3,1);}
   .ghead:hover .info,.ghead:focus-within .info{opacity:1;pointer-events:auto;}
   .info:hover{border-color:var(--acc);color:var(--acc);}
   .info:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
@@ -82,7 +82,7 @@
   .fl-name{font:600 13px/1.2 var(--display);color:var(--txt);}
   .fl-sub{font:400 10px/1.2 var(--mono);color:var(--muted);white-space:nowrap;}
   .stepper{display:flex;flex:0 0 auto;align-items:center;background:var(--field);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;}
-  .step{width:36px;height:40px;display:grid;place-items:center;background:var(--card);border:0;color:var(--muted);font:400 18px/1 var(--display);cursor:pointer;padding:0;}
+  .step{width:36px;height:40px;display:grid;place-items:center;background:var(--card);border:0;color:var(--muted);font:400 18px/1 var(--display);cursor:pointer;padding:0;transition:background-color .22s cubic-bezier(.2,.7,.3,1),color .22s cubic-bezier(.2,.7,.3,1);}
   .step:hover:not(:disabled){background:var(--hover);color:var(--acc);}
   .step:focus-visible{outline:2px solid var(--acc);outline-offset:-2px;}
   .step:disabled{opacity:.35;cursor:default;}
@@ -92,7 +92,7 @@
 
   /* --- resin panel --- */
   .resin{margin:0;}
-  .resin-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;height:44px;padding:0 16px;background:var(--raised);border:1px solid var(--border);border-left:3px solid var(--acc);border-radius:var(--r-sm);color:var(--muted);font:600 12px/1 var(--display);cursor:pointer;list-style:none;}
+  .resin-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;height:44px;padding:0 16px;background:var(--raised);border:1px solid var(--border);border-left:3px solid var(--acc);border-radius:var(--r-sm);color:var(--muted);font:600 12px/1 var(--display);cursor:pointer;list-style:none;transition:background-color .22s cubic-bezier(.2,.7,.3,1);}
   .resin-btn::-webkit-details-marker{display:none;}
   .resin-btn::marker{content:"";}
   .resin-btn:hover{background:var(--hover);}
@@ -123,7 +123,7 @@
 
   /* --- motion --- */
   @media (prefers-reduced-motion:reduce){
-    .chev,.fill,.info{transition:none;}
+    .chev,.fill,.info,.tool,.theme-opt,.step,.resin-btn{transition:none;}
   }
   @media (hover:none),(pointer:coarse){.ghead .info{opacity:1;pointer-events:auto;}}
 
@@ -151,7 +151,7 @@
   .fl-sub{font-size:9px;line-height:1.1;}
   .stepper{position:relative;display:block;width:100%;height:29px;overflow:visible;border:0;border-radius:0;background:transparent;}
   .sinput{display:block;width:100%;height:29px;padding:0 3px;font-size:12px;}
-  .step{position:absolute;z-index:1;top:3px;width:22px;height:23px;padding:0;border-radius:0;font-size:15px;line-height:1;opacity:0;transition:opacity .12s ease,background-color .12s ease;}
+  .step{position:absolute;z-index:1;top:3px;width:22px;height:23px;padding:0;border-radius:0;font-size:15px;line-height:1;opacity:0;transition:opacity .22s cubic-bezier(.2,.7,.3,1),background-color .22s cubic-bezier(.2,.7,.3,1),color .22s cubic-bezier(.2,.7,.3,1);}
   .step:first-child{left:3px;}
   .step:last-child{right:3px;}
   .stepper:hover .step,.stepper:focus-within .step{opacity:1;}
