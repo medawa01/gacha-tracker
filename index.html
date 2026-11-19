@@ -69,7 +69,7 @@ const GAMES = [
     defaults:{ gems:35617, rolls:4, glitter:1684, pity:2, target:4, resin:24, thresh:40 } },
   { id:"ZZZ", gemPerPull:160, glitterPerPull:20, glitterName:"Starglitter", targetMult:160, deficitPerPull:160, resinCap:240, regenMin:6,
     defaults:{ gems:28159, rolls:16, glitter:1400, pity:30, target:2, resin:1, thresh:60 } },
-  { id:"GFL2", gemPerPull:150, glitterPerPull:30, glitterName:"Starglitter", targetMult:130, deficitPerPull:160, resinCap:260, regenMin:5,
+  { id:"GFL2", banner:"gfl2_banner.gif", gemPerPull:150, glitterPerPull:30, glitterName:"Starglitter", targetMult:130, deficitPerPull:160, resinCap:260, regenMin:5,
     defaults:{ gems:62404, rolls:5, glitter:7650, pity:0, target:6, resin:22, thresh:120 } },
   { id:"CZN", gemPerPull:160, glitterPerPull:10, glitterName:"Starglitter", targetMult:120, deficitPerPull:160, resinCap:320, regenMin:6,
     defaults:{ gems:30731, rolls:13, glitter:958, pity:33, target:3, resin:105, thresh:20 } },
@@ -157,6 +157,7 @@ const FIELDS = [
 function render(g){
   const p = g.id;
   const slug = p.toLowerCase().replace(/\s+/g,"-");
+  const banner = g.banner || `${slug}.jpg`;
   const spec = `${g.targetMult} pity · ${g.gemPerPull}/pull · ${g.glitterPerPull} tokens` + (g.resinCap?` · ${g.resinCap} cap · ${g.regenMin}min`:"");
   const fields = FIELDS.map(([key,label,subId])=>`
       <div class="field">
@@ -188,7 +189,7 @@ function render(g){
       </div>
     </details>` : "";
   return `<div class="game" id="game-${p}" role="group" aria-label="${p} tracker">
-    <div class="ghead" style="background-image:url('assets/${slug}.jpg')">
+    <div class="ghead" style="background-image:url('assets/${banner}')">
       <span class="info-wrap">
         <button type="button" tabindex="-1" class="info" aria-label="${p} rates and limits" aria-describedby="${p}-tip">i</button>
         <span class="tip" role="tooltip" id="${p}-tip">${spec}</span>
