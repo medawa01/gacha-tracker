@@ -16,7 +16,7 @@ const app_src = scripts.find(s => s.includes("const GAMES"));
 if(!app_src) throw new Error("no app <script> found in index.html");
 
 const app = new Function(`${app_src}
-;return { GAMES, FIELDS, computePulls, computeResin, planSync, validCznPulls, sameCloud, fmtDur, fmtStamp };`)();
+;return { GAMES, FIELDS, computePulls, computeResin, planSync, validCznPulls, validZzzPulls, sameCloud, fmtDur, fmtStamp };`)();
 
 let pass = 0, fail = 0;
 function is(name, got, want){
@@ -97,7 +97,13 @@ is("CZN sync: invalid pity rejected", app.validCznPulls([{n:"Mei Lin",p:71}]), f
 is("CZN sync: CZN-only difference detected",
    app.sameCloud({games:{},czn:[{n:"Yuki",p:62}]},{games:{},czn:[]}), false);
 is("CZN sync: legacy backup without CZN remains compatible",
-   app.sameCloud({games:{},v:1},{games:{},czn:[{n:"Yuki",p:62}]}), true);
+    app.sameCloud({games:{},v:1},{games:{},czn:[{n:"Yuki",p:62}]}), true);
+is("ZZZ sync: valid agent list accepted", app.validZzzPulls([{n:"Nekomata",p:50,mindscape:"M2"}]), true);
+is("ZZZ sync: invalid pity rejected", app.validZzzPulls([{n:"Nekomata",p:91}]), false);
+is("ZZZ sync: ZZZ-only difference detected",
+   app.sameCloud({games:{},zzz:[{n:"Nekomata",p:50}]},{games:{},zzz:[]}), false);
+is("ZZZ sync: legacy backup without ZZZ remains compatible",
+   app.sameCloud({games:{},v:1},{games:{},zzz:[{n:"Nekomata",p:50}]}), true);
 
 /* ---- formatters ---- */
 is("fmtDur 0 -> full", app.fmtDur(0), "full");
